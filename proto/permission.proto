@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package role;
+
+option go_package = "/proto";
+
+service PermissionService {
+  rpc CreatePermission(CreatePermissionRequest) returns (CreatePermissionResponse);
+  rpc DeletePermission(DeletePermissionRequest) returns (DeletePermissionResponse);
+  rpc AssignPermissionToRole(AssignPermissionToRoleRequest) returns (AssignPermissionToRoleResponse);
+  rpc RemovePermissionFromRole(RemovePermissionFromRoleRequest) returns (RemovePermissionFromRoleResponse);
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  rpc GetRolePermissions(GetRolePermissionsRequest) returns (GetRolePermissionsResponse);
+}
+
+message CreatePermissionRequest {
+  string name = 1;
+  string description = 2;
+  string resource = 3;
+  string action = 4;
+}
+
+message CreatePermissionResponse {
+  bool success = 1;
+  string permission_id = 2;
+}
+
+message DeletePermissionRequest {
+  string permission_id = 1;
+}
+
+message DeletePermissionResponse {
+  bool success = 1;
+}
+
+message AssignPermissionToRoleRequest {
+  string role_id = 1;
+  string permission_id = 2;
+}
+
+message AssignPermissionToRoleResponse {
+  bool success = 1;
+}
+
+message RemovePermissionFromRoleRequest {
+  string role_id = 1;
+  string permission_id = 2;
+}
+
+message RemovePermissionFromRoleResponse {
+  bool success = 1;
+}
+
+message CheckPermissionRequest {
+  string user_id = 1;
+  string resource = 2;
+  string action = 3;
+}
+
+message CheckPermissionResponse {
+  bool has_permission = 1;
+}
+
+message GetRolePermissionsRequest {
+  string role_id = 1;
+}
+
+message GetRolePermissionsResponse {
+  repeated string permission_ids = 1;
+}

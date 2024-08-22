@@ -1,0 +1,30 @@
+-- name: CreateUser :exec
+INSERT INTO users (username, password_hash, email)
+VALUES ($1, $2, $3);
+
+-- name: GetUserByID :one
+SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE id = $1;
+
+-- name: GetUserByUsername :one
+SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE username = $1;
+
+-- name: UpdateUsername :exec
+UPDATE users
+SET username = $2, updated_at = NOW()
+WHERE id = $1;
+
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password_hash = $2, updated_at = NOW()
+WHERE id = $1;
+
+-- name: UpdateUserEmail :exec
+UPDATE users
+SET email = $2, updated_at = NOW()
+WHERE id = $1;
+
+-- name: ListUsers :many
+SELECT id, username, email, created_at, updated_at FROM users;
+
+-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1;
