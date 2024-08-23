@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"go.flare.io/auth/sqlc"
+	"time"
+)
 
 type Role struct {
 	ID          uint32    `json:"id"`
@@ -8,4 +11,33 @@ type Role struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func NewRole() *Role {
+	return &Role{}
+}
+
+func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
+
+	var name, description string
+
+	switch sp := sqlcRole.(type) {
+	case *sqlc.Role:
+		name = sp.Name
+		if sp.Description != nil {
+			description = *sp.Description
+		}
+	case *sqlc.ListRolesRow:
+		name = sp.Name
+		if sp.Description != nil {
+			description = *sp.Description
+		}
+	default:
+		return nil
+	}
+
+	r.Name = name
+	r.Description = description
+
+	return r
 }

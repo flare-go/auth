@@ -34,18 +34,47 @@ func (q *Queries) DeleteRole(ctx context.Context, id uint32) error {
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, name, description, created_at, updated_at FROM roles WHERE id = $1
+SELECT name, description FROM roles WHERE id = $1
 `
 
-func (q *Queries) GetRoleByID(ctx context.Context, id uint32) (*Role, error) {
+type GetRoleByIDRow struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+func (q *Queries) GetRoleByID(ctx context.Context, id uint32) (*GetRoleByIDRow, error) {
 	row := q.db.QueryRow(ctx, getRoleByID, id)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	var i GetRoleByIDRow
+	err := row.Scan(&i.Name, &i.Description)
 	return &i, err
+}
+
+const listRoles = `-- name: ListRoles :many
+SELECT id, name, description FROM roles
+`
+
+type ListRolesRow struct {
+	ID          uint32  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+func (q *Queries) ListRoles(ctx context.Context) ([]*ListRolesRow, error) {
+	rows, err := q.db.Query(ctx, listRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*ListRolesRow{}
+	for rows.Next() {
+		var i ListRolesRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

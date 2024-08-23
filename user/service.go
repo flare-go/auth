@@ -11,5 +11,44 @@ type Service interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
-	GetUserRoles(ctx context.Context, userID uint32) ([]models.Role, error)
+	GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
+	ListAllUsers(context.Context) ([]*models.User, error)
+}
+
+type service struct {
+	repo Repository
+}
+
+func NewService(repo Repository) Service {
+	return &service{
+		repo: repo,
+	}
+}
+
+func (s *service) Create(ctx context.Context, user *models.User) error {
+	return s.repo.Create(ctx, user)
+}
+
+func (s *service) GetByID(ctx context.Context, id uint32) (*models.User, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *service) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	return s.repo.GetByUsername(ctx, username)
+}
+
+func (s *service) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {
+	return s.repo.AssignRoleToUserWithTx(ctx, userID, roleID)
+}
+
+func (s *service) RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error {
+	return s.repo.RemoveRoleFromUser(ctx, userID, roleID)
+}
+
+func (s *service) GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
+	return s.repo.GetUserRoles(ctx, userID)
+}
+
+func (s *service) ListAllUsers(ctx context.Context) ([]*models.User, error) {
+	return s.repo.ListAllUsers(ctx)
 }

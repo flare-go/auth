@@ -18,11 +18,12 @@ type Querier interface {
 	DeleteRole(ctx context.Context, id uint32) error
 	DeleteUser(ctx context.Context, id uint32) error
 	GetPermissionByID(ctx context.Context, id uint32) (*GetPermissionByIDRow, error)
-	GetRoleByID(ctx context.Context, id uint32) (*Role, error)
+	GetRoleByID(ctx context.Context, id uint32) (*GetRoleByIDRow, error)
 	GetRolePermissions(ctx context.Context, roleID uint32) ([]*Permission, error)
 	GetUserByID(ctx context.Context, id uint32) (*GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (*GetUserByUsernameRow, error)
 	GetUserRoles(ctx context.Context, userID uint32) ([]*Role, error)
+	ListRoles(ctx context.Context) ([]*ListRolesRow, error)
 	ListUsers(ctx context.Context) ([]*ListUsersRow, error)
 	RemovePermissionFromRole(ctx context.Context, arg RemovePermissionFromRoleParams) error
 	RemoveRoleFromUser(ctx context.Context, arg RemoveRoleFromUserParams) error
