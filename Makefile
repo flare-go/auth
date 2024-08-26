@@ -1,4 +1,10 @@
-.PHONY: all run test db-up db-down redis-up redis-down nsq-up nsq-down build docker-build docker-push k8s-deploy k8s-delete clean
+PROTOC:=protoc
+PROTO_PATH:=$(HOME)/go/src/github.com/koopa0/auth/
+GOOGLE_PROTOBUF_PATH:=$(GOPATH)/pkg/mod/github.com/google/protobuf@v5.27.3+incompatible/src/
+GO_OUT:=proto/pb
+PROTO_FILES:=proto/*.proto
+
+.PHONY: all run test db-up db-down redis-up redis-down nsq-up nsq-down build docker-build docker-push k8s-deploy k8s-delete clean proto
 
 all: run
 
@@ -63,3 +69,10 @@ gcp-unset-token:
 
 gcp-auth-application:
 	gcloud auth application-default login
+
+proto:
+	$(PROTOC) -I $(PROTO_PATH) \
+	-I $(GOOGLE_PROTOBUF_PATH) \
+	--proto_path=proto --go_out=$(GO_OUT) --go_opt=paths=source_relative \
+	--go-grpc_out=$(GO_OUT) --go-grpc_opt=paths=source_relative \
+	$(PROTO_FILES)

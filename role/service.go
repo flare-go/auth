@@ -2,7 +2,7 @@ package role
 
 import (
 	"context"
-	"go.flare.io/auth/models"
+	"goflare.io/auth/models"
 )
 
 type Service interface {

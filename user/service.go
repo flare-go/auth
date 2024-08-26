@@ -2,13 +2,14 @@ package user
 
 import (
 	"context"
-	"go.flare.io/auth/models"
+	"goflare.io/auth/models"
 )
 
 type Service interface {
-	Create(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) (uint32, error)
 	GetByID(ctx context.Context, id uint32) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
 	GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
@@ -25,7 +26,7 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s *service) Create(ctx context.Context, user *models.User) error {
+func (s *service) Create(ctx context.Context, user *models.User) (uint32, error) {
 	return s.repo.Create(ctx, user)
 }
 
@@ -35,6 +36,10 @@ func (s *service) GetByID(ctx context.Context, id uint32) (*models.User, error) 
 
 func (s *service) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	return s.repo.GetByUsername(ctx, username)
+}
+
+func (s *service) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	return s.repo.GetByEmail(ctx, email)
 }
 
 func (s *service) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {

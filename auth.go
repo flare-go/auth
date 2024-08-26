@@ -3,13 +3,14 @@ package auth
 import (
 	"context"
 	"encoding/base64"
-	"github.com/casbin/casbin/v3"
+	"fmt"
+	"github.com/casbin/casbin/v2"
 	"github.com/o1egl/paseto"
-	"go.flare.io/auth/models"
-	"go.flare.io/auth/models/enum"
-	"go.flare.io/auth/permission"
-	"go.flare.io/auth/role"
-	"go.flare.io/auth/user"
+	"goflare.io/auth/models"
+	"goflare.io/auth/models/enum"
+	"goflare.io/auth/permission"
+	"goflare.io/auth/role"
+	"goflare.io/auth/user"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ed25519"
 	"strconv"
@@ -23,8 +24,8 @@ type Authentication interface {
 	ValidatePASETOToken(tokenString string) (*models.Claims, error)
 	RevokePASETOToken(tokenString string) error
 	RefreshPASETOToken(refreshToken string) (*models.PASETOToken, error)
-	Register(ctx context.Context, username, password, email string) error
-	Login(ctx context.Context, username, password string) (*models.PASETOToken, error)
+	Register(ctx context.Context, username, password, email string) (*models.PASETOToken, error)
+	Login(ctx context.Context, email, password string) (*models.PASETOToken, error)
 	Logout(token string) error
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	DeleteRole(ctx context.Context, roleID uint32) error
@@ -72,18 +73,18 @@ func (auth *AuthenticationImpl) LoadPolicy() error {
 	// 加載所有角色和權限
 	roleModels, err := auth.role.ListAllRoles(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list roles: %w", err)
 	}
 
 	for _, roleModel := range roleModels {
 		permissions, err := auth.role.GetRolePermissions(ctx, roleModel.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get permissions for role %s: %w", roleModel.Name, err)
 		}
 
 		for _, perm := range permissions {
-			if _, err = auth.enforcer.AddPolicy("p", "p", []string{roleModel.Name, string(perm.Resource), string(perm.Action)}); err != nil {
-				return err
+			if _, err = auth.enforcer.AddPolicy(roleModel.Name, string(perm.Resource), string(perm.Action)); err != nil {
+				return fmt.Errorf("failed to add policy for role %s: %w", roleModel.Name, err)
 			}
 		}
 	}
@@ -91,18 +92,18 @@ func (auth *AuthenticationImpl) LoadPolicy() error {
 	// 加載所有用戶和角色
 	userModels, err := auth.user.ListAllUsers(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list users: %w", err)
 	}
 
 	for _, userModel := range userModels {
 		userRoles, err := auth.user.GetUserRoles(ctx, userModel.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get roles for user %s: %w", userModel.Username, err)
 		}
 
 		for _, userRole := range userRoles {
-			if _, err = auth.enforcer.AddPolicy("g", "g", []string{userModel.Username, userRole.Name}); err != nil {
-				return err
+			if _, err = auth.enforcer.AddGroupingPolicy(userModel.Username, userRole.Name); err != nil {
+				return fmt.Errorf("failed to add grouping policy for user %s: %w", userModel.Username, err)
 			}
 		}
 	}
@@ -214,29 +215,35 @@ func (auth *AuthenticationImpl) RefreshPASETOToken(refreshToken string) (*models
 	return auth.GeneratePASETOToken(payload.UserID)
 }
 
-func (auth *AuthenticationImpl) Register(ctx context.Context, username, password, email string) error {
+func (auth *AuthenticationImpl) Register(ctx context.Context, username, password, email string) (*models.PASETOToken, error) {
 	auth.mu.Lock()
 	defer auth.mu.Unlock()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return auth.user.Create(ctx, &models.User{
+	id, err := auth.user.Create(ctx, &models.User{
 		Username:     username,
 		PasswordHash: string(hashedPassword),
 		Email:        email,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return auth.GeneratePASETOToken(id)
 }
 
-func (auth *AuthenticationImpl) Login(ctx context.Context, username, password string) (*models.PASETOToken, error) {
+func (auth *AuthenticationImpl) Login(ctx context.Context, email, password string) (*models.PASETOToken, error) {
 	auth.mu.RLock()
 	defer auth.mu.RUnlock()
 
-	userModel, err := auth.user.GetByUsername(ctx, username)
+	userModel, err := auth.user.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +312,7 @@ func (auth *AuthenticationImpl) AssignRoleToUser(ctx context.Context, userID, ro
 	}
 
 	// Add the role to the user in Casbin
-	if _, err = auth.enforcer.AddRoleForUser(userModel.Username, roleModel.Name); err != nil {
+	if _, err = auth.enforcer.AddGroupingPolicy(userModel.Username, roleModel.Name); err != nil {
 		return err
 	}
 

@@ -11,9 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :exec
+const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, password_hash, email)
 VALUES ($1, $2, $3)
+RETURNING id
 `
 
 type CreateUserParams struct {
@@ -22,9 +23,11 @@ type CreateUserParams struct {
 	Email        string `json:"email"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.Exec(ctx, createUser, arg.Username, arg.PasswordHash, arg.Email)
-	return err
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint32, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.PasswordHash, arg.Email)
+	var id uint32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -34,6 +37,31 @@ DELETE FROM users WHERE id = $1
 func (q *Queries) DeleteUser(ctx context.Context, id uint32) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID           uint32             `json:"id"`
+	PasswordHash string             `json:"passwordHash"`
+	Username     string             `json:"username"`
+	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.PasswordHash,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one

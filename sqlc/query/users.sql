@@ -1,12 +1,16 @@
--- name: CreateUser :exec
+-- name: CreateUser :one
 INSERT INTO users (username, password_hash, email)
-VALUES ($1, $2, $3);
+VALUES ($1, $2, $3)
+RETURNING id;
 
 -- name: GetUserByID :one
 SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE id = $1;
 
 -- name: GetUserByUsername :one
 SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE username = $1;
+
+-- name: GetUserByEmail :one
+SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE email = $1;
 
 -- name: UpdateUsername :exec
 UPDATE users

@@ -1,8 +1,8 @@
 package models
 
 import (
-	"go.flare.io/auth/models/enum"
-	"go.flare.io/auth/sqlc"
+	"goflare.io/auth/models/enum"
+	"goflare.io/auth/sqlc"
 	"time"
 )
 

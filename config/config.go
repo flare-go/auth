@@ -1,13 +1,12 @@
 package config
 
 import (
-	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-	"go.flare.io/auth/driver"
-	"go.flare.io/auth/models"
 	"go.uber.org/zap"
+	"goflare.io/auth/driver"
+	"goflare.io/auth/models"
 	"os"
 )
 
@@ -42,9 +41,9 @@ func ProvideApplicationConfig() *AppConfig {
 	}
 	appConfig.Logger = logger
 
-	_ = godotenv.Load(fmt.Sprintf("%s.%s", Local, ENVConfigType))
-	if cmp.Equal(os.Getenv(Environment), Local) {
+	_ = godotenv.Load("local.env")
 
+	if cmp.Equal(os.Getenv(Environment), Local) {
 		appConfig.PostgresURI = os.Getenv("postgres_uri")
 		appConfig.PasetoPrivateKey = os.Getenv("paseto_private_key")
 		appConfig.PasetoPublicKey = os.Getenv("paseto_public_key")

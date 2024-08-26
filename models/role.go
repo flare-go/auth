@@ -1,7 +1,7 @@
 package models
 
 import (
-	"go.flare.io/auth/sqlc"
+	"goflare.io/auth/sqlc"
 	"time"
 )
 
@@ -19,6 +19,7 @@ func NewRole() *Role {
 
 func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
 
+	var id uint32
 	var name, description string
 
 	switch sp := sqlcRole.(type) {
@@ -28,6 +29,7 @@ func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
 			description = *sp.Description
 		}
 	case *sqlc.ListRolesRow:
+		id = sp.ID
 		name = sp.Name
 		if sp.Description != nil {
 			description = *sp.Description
@@ -36,6 +38,7 @@ func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
 		return nil
 	}
 
+	r.ID = id
 	r.Name = name
 	r.Description = description
 

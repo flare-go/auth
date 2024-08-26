@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go.flare.io/auth/driver"
-	"go.flare.io/auth/models"
-	"go.flare.io/auth/sqlc"
 	"go.uber.org/zap"
+	"goflare.io/auth/driver"
+	"goflare.io/auth/models"
+	"goflare.io/auth/sqlc"
 )
 
 var _ Repository = (*repository)(nil)

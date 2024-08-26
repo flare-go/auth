@@ -5,14 +5,17 @@ package main
 
 import (
 	"github.com/google/wire"
-	"go.flare.io/auth"
-	"go.flare.io/auth/config"
-	"go.flare.io/auth/permission"
-	"go.flare.io/auth/role"
-	"go.flare.io/auth/user"
+	"goflare.io/auth"
+	"goflare.io/auth/config"
+	"goflare.io/auth/handler"
+	"goflare.io/auth/middleware"
+	"goflare.io/auth/permission"
+	"goflare.io/auth/role"
+	"goflare.io/auth/server"
+	"goflare.io/auth/user"
 )
 
-func InitializeAuthService() (auth.Authentication, error) {
+func InitializeAuthService() (*server.Server, error) {
 
 	wire.Build(
 		config.ProvideApplicationConfig,
@@ -27,7 +30,10 @@ func InitializeAuthService() (auth.Authentication, error) {
 		permission.NewRepository,
 		permission.NewService,
 		auth.NewAuthentication,
+		middleware.NewAuthenticationMiddleware,
+		handler.NewUserHandler,
+		server.NewServer,
 	)
 
-	return &auth.AuthenticationImpl{}, nil
+	return &server.Server{}, nil
 }

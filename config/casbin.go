@@ -2,8 +2,8 @@ package config
 
 import (
 	pgadapter "github.com/casbin/casbin-pg-adapter"
-	"github.com/casbin/casbin/v3"
-	"github.com/casbin/casbin/v3/model"
+	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v2/model"
 )
 
 func ProvideEnforcer(appConfig *AppConfig) (*casbin.Enforcer, error) {
@@ -14,7 +14,7 @@ func ProvideEnforcer(appConfig *AppConfig) (*casbin.Enforcer, error) {
 		return nil, err
 	}
 
-	adapter, err := pgadapter.NewAdapter(appConfig.PostgresURI)
+	adapter, err := pgadapter.NewAdapter("postgresql://koopa@localhost:5432/go-flare?sslmode=disable")
 	if err != nil {
 		appConfig.Logger.Error(err.Error())
 		return nil, err

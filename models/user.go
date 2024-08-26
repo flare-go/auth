@@ -1,7 +1,7 @@
 package models
 
 import (
-	"go.flare.io/auth/sqlc"
+	"goflare.io/auth/sqlc"
 	"time"
 )
 
@@ -26,12 +26,16 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	switch sp := sqlcUser.(type) {
 	case *sqlc.GetUserByIDRow:
 		username = sp.Username
-		sp.PasswordHash = passwordHash
+		passwordHash = sp.PasswordHash
 		email = sp.Email
 	case *sqlc.GetUserByUsernameRow:
 		id = sp.ID
-		sp.PasswordHash = passwordHash
+		passwordHash = sp.PasswordHash
 		email = sp.Email
+	case *sqlc.GetUserByEmailRow:
+		id = sp.ID
+		passwordHash = sp.PasswordHash
+		username = sp.Username
 	case *sqlc.ListUsersRow:
 		id = sp.ID
 		username = sp.Username

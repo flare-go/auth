@@ -4,15 +4,18 @@ import "log"
 
 func main() {
 
-	auth, err := InitializeAuthService()
+	server, err := InitializeAuthService()
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	if err = auth.LoadPolicy(); err != nil {
+	if err = server.Authentication.LoadPolicy(); err != nil {
 		log.Fatal(err)
 		return
 	}
 
+	if err = server.Run(":8080"); err != nil {
+		log.Fatal(err.Error())
+	}
 }

@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"go.flare.io/auth/driver"
-	"go.flare.io/auth/models"
-	"go.flare.io/auth/sqlc"
 	"go.uber.org/zap"
+	"goflare.io/auth/driver"
+	"goflare.io/auth/models"
+	"goflare.io/auth/sqlc"
 )
 
 type Repository interface {
-	Create(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) (uint32, error)
 	GetByID(ctx context.Context, id uint32) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
 	GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
@@ -35,7 +36,7 @@ func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 	}
 }
 
-func (r *repository) Create(ctx context.Context, user *models.User) error {
+func (r *repository) Create(ctx context.Context, user *models.User) (uint32, error) {
 	return r.queries.CreateUser(ctx, sqlc.CreateUserParams{
 		Username:     user.Username,
 		PasswordHash: user.PasswordHash,
@@ -79,6 +80,26 @@ func (r *repository) GetByUsername(ctx context.Context, username string) (*model
 	user.Username = username
 
 	return user, nil
+}
+
+func (r *repository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+
+	if email == "" {
+		r.logger.Error("email is required")
+		return nil, errors.New("email is required")
+	}
+
+	sqlcUser, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		r.logger.Error("failed to get user by username", zap.Error(err))
+		return nil, err
+	}
+
+	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
+	user.Email = email
+
+	return user, nil
+
 }
 
 func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {
@@ -135,7 +156,7 @@ func (r *repository) GetUserRoles(ctx context.Context, userID uint32) ([]*models
 		return nil, err
 	}
 
-	roles := make([]*models.Role, len(sqlcRoles))
+	roles := make([]*models.Role, 0, len(sqlcRoles))
 	for _, role := range sqlcRoles {
 		roles = append(roles, models.NewRole().ConvertFromSQLCRole(role))
 	}
@@ -151,7 +172,7 @@ func (r *repository) ListAllUsers(ctx context.Context) ([]*models.User, error) {
 		return nil, err
 	}
 
-	users := make([]*models.User, len(sqlcUsers))
+	users := make([]*models.User, 0, len(sqlcUsers))
 	for _, user := range sqlcUsers {
 		users = append(users, models.NewUser().ConvertFromSQLCUser(user))
 	}

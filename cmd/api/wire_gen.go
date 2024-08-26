@@ -7,16 +7,19 @@
 package main
 
 import (
-	"go.flare.io/auth"
-	"go.flare.io/auth/config"
-	"go.flare.io/auth/permission"
-	"go.flare.io/auth/role"
-	"go.flare.io/auth/user"
+	"goflare.io/auth"
+	"goflare.io/auth/config"
+	"goflare.io/auth/handler"
+	"goflare.io/auth/middleware"
+	"goflare.io/auth/permission"
+	"goflare.io/auth/role"
+	"goflare.io/auth/server"
+	"goflare.io/auth/user"
 )
 
 // Injectors from wire.go:
 
-func InitializeAuthService() (auth.Authentication, error) {
+func InitializeAuthService() (*server.Server, error) {
 	appConfig := config.ProvideApplicationConfig()
 	postgresPool := config.ProvidePostgresConn(appConfig)
 	logger := config.NewLogger()
@@ -32,5 +35,8 @@ func InitializeAuthService() (auth.Authentication, error) {
 		return nil, err
 	}
 	authentication := auth.NewAuthentication(service, roleService, permissionService, pasetoSecret, enforcer)
-	return authentication, nil
+	authenticationMiddleware := middleware.NewAuthenticationMiddleware(authentication)
+	userHandler := handler.NewUserHandler(authentication)
+	serverServer := server.NewServer(authenticationMiddleware, userHandler, authentication)
+	return serverServer, nil
 }

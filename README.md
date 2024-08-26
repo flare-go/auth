@@ -26,7 +26,7 @@
 在你的 Golang 專案中引入 `auth` 模組：
 
 ```bash
-go get go.flare.io/auth
+go get goflare.io/auth
 ```
 
 ## 使用方法
@@ -43,35 +43,36 @@ go get go.flare.io/auth
 - **ValidateToken**: 驗證 Token 的有效性
 
 範例使用方法：
+
 ```go
 package main
 
 import (
-    "context"
-    "log"
-    "go.flare.io/auth"
-    "google.golang.org/grpc"
+  "context"
+  "goflare.io/auth"
+  "google.golang.org/grpc"
+  "log"
 )
 
 func main() {
-    conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
-    if err != nil {
-        log.Fatalf("did not connect: %v", err)
-    }
-    defer conn.Close()
+  conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+  if err != nil {
+    log.Fatalf("did not connect: %v", err)
+  }
+  defer conn.Close()
 
-    client := auth.NewAuthServiceClient(conn)
+  client := auth.NewAuthServiceClient(conn)
 
-    response, err := client.Register(context.Background(), &auth.RegisterRequest{
-        Username: "testuser",
-        Password: "password123",
-        Email:    "testuser@example.com",
-    })
-    if err != nil {
-        log.Fatalf("could not register: %v", err)
-    }
+  response, err := client.Register(context.Background(), &auth.RegisterRequest{
+    Username: "testuser",
+    Password: "password123",
+    Email:    "testuser@example.com",
+  })
+  if err != nil {
+    log.Fatalf("could not register: %v", err)
+  }
 
-    log.Printf("Register Response: %v", response)
+  log.Printf("Register Response: %v", response)
 }
 ```
 

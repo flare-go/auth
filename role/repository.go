@@ -3,10 +3,10 @@ package role
 import (
 	"context"
 	"errors"
-	"go.flare.io/auth/driver"
-	"go.flare.io/auth/models"
-	"go.flare.io/auth/sqlc"
 	"go.uber.org/zap"
+	"goflare.io/auth/driver"
+	"goflare.io/auth/models"
+	"goflare.io/auth/sqlc"
 )
 
 type Repository interface {
@@ -89,7 +89,7 @@ func (r *repository) GetRolePermissions(ctx context.Context, roleID uint32) ([]*
 		return nil, errors.New("error getting role permissions")
 	}
 
-	permissions := make([]*models.Permission, len(sqlcPermissions))
+	permissions := make([]*models.Permission, 0, len(sqlcPermissions))
 
 	for _, sqlcPermission := range sqlcPermissions {
 		permissions = append(permissions, models.NewPermission().ConvertFromSQLCPermission(sqlcPermission))
@@ -106,7 +106,7 @@ func (r *repository) ListAllRoles(ctx context.Context) ([]*models.Role, error) {
 		return nil, errors.New("error listing roles")
 	}
 
-	roles := make([]*models.Role, len(sqlcRoles))
+	roles := make([]*models.Role, 0, len(sqlcRoles))
 	for _, sqlcRole := range sqlcRoles {
 		roles = append(roles, models.NewRole().ConvertFromSQLCRole(sqlcRole))
 	}
