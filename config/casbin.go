@@ -14,7 +14,7 @@ func ProvideEnforcer(appConfig *AppConfig) (*casbin.Enforcer, error) {
 		return nil, err
 	}
 
-	adapter, err := pgadapter.NewAdapter("postgresql://koopa@localhost:5432/go-flare?sslmode=disable")
+	adapter, err := pgadapter.NewAdapter(appConfig.PostgresURI)
 	if err != nil {
 		appConfig.Logger.Error(err.Error())
 		return nil, err

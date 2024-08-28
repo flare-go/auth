@@ -157,7 +157,7 @@ CREATE TABLE role_permissions (
 如需在本地進行開發和測試，可以使用以下命令啟動服務：
 
 ```bash
-go run ./cmd/api/main.go
+go run ./cmd/api/
 ```
 
 在開發過程中，你可以根據需求修改 `casbin.conf` 來適配不同的授權需求，或者根據你的業務邏輯擴展 PASETO 的使用方法。

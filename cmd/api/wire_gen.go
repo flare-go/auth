@@ -21,7 +21,10 @@ import (
 
 func InitializeAuthService() (*server.Server, error) {
 	appConfig := config.ProvideApplicationConfig()
-	postgresPool := config.ProvidePostgresConn(appConfig)
+	postgresPool, err := config.ProvidePostgresConn(appConfig)
+	if err != nil {
+		return nil, err
+	}
 	logger := config.NewLogger()
 	repository := user.NewRepository(postgresPool, logger)
 	service := user.NewService(repository)

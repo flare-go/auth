@@ -56,14 +56,14 @@ func ProvideApplicationConfig() *AppConfig {
 	return &appConfig
 }
 
-func ProvidePostgresConn(appConfig *AppConfig) driver.PostgresPool {
+func ProvidePostgresConn(appConfig *AppConfig) (driver.PostgresPool, error) {
 
 	conn, err := driver.ConnectSQL(appConfig.PostgresURI)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return conn.Pool
+	return conn.Pool, nil
 }
 
 func ProvideRedisConn(appConfig *AppConfig) *redis.Client {
