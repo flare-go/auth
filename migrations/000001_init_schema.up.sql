@@ -57,9 +57,9 @@ CREATE INDEX idx_role_permissions_permission_id ON role_permissions (permission_
 
 -- 插入用戶
 INSERT INTO users (username, password_hash, email) VALUES
-                                                       ('admin', '$2a$10$XOPbrlUPQdwdJUpSrIF6X.LbE14qsMmKGhM1A8W9E89Ii9hxiccHK', 'admin@example.com'),
-                                                       ('user1', '$2a$10$XOPbrlUPQdwdJUpSrIF6X.LbE14qsMmKGhM1A8W9E89Ii9hxiccHK', 'user1@example.com'),
-                                                       ('user2', '$2a$10$XOPbrlUPQdwdJUpSrIF6X.LbE14qsMmKGhM1A8W9E89Ii9hxiccHK', 'user2@example.com');
+                                                       ('admin', '$2a$10$Gqpa6ukRxP.XxwCLjNRrweuWPgrw0XIIo5xi.a8XUpVcndvIgWPlW', 'admin@example.com'),
+                                                       ('user1', '$2a$10$Gqpa6ukRxP.XxwCLjNRrweuWPgrw0XIIo5xi.a8XUpVcndvIgWPlW', 'user1@example.com'),
+                                                       ('user2', '$2a$10$Gqpa6ukRxP.XxwCLjNRrweuWPgrw0XIIo5xi.a8XUpVcndvIgWPlW', 'user2@example.com');
 
 -- 插入角色
 INSERT INTO roles (name, description) VALUES
