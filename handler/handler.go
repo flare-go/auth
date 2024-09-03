@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"goflare.io/auth"
 	"goflare.io/auth/models/enum"
-	"net/http"
 )
 
 type UserHandler interface {

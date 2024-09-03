@@ -7,9 +7,9 @@ CREATE TYPE resource_type AS ENUM('USER', 'ROLE', 'PERMISSION', 'PRODUCT', 'ORDE
 
 CREATE TABLE users (
                        id SERIAL PRIMARY KEY,
-                       username VARCHAR(100) NOT NULL UNIQUE,
+                       username VARCHAR(100) NOT NULL UNIQUE CHECK (length(name) >= 2),
                        password_hash VARCHAR(255) NOT NULL,
-                       email VARCHAR(100) NOT NULL UNIQUE CHECK (position('@' in email) > 0),
+                       email VARCHAR(100) NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._+%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'),
                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -17,7 +17,7 @@ CREATE TABLE users (
 CREATE TABLE roles (
                        id SERIAL PRIMARY KEY,
                        name VARCHAR(255) NOT NULL UNIQUE,
-                       description TEXT,
+                       description VARCHAR(255),
                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -25,7 +25,7 @@ CREATE TABLE roles (
 CREATE TABLE permissions (
                              id SERIAL PRIMARY KEY,
                              name VARCHAR(255) NOT NULL UNIQUE,
-                             description TEXT,
+                             description VARCHAR(255),
                              resource resource_type NOT NULL,
                              action action_type NOT NULL,
                              created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
