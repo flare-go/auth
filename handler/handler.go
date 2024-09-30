@@ -26,6 +26,15 @@ func NewUserHandler(
 	}
 }
 
+type AuthHandler struct {
+	AuthService auth.Authentication
+}
+
+type OAuthLoginRequest struct {
+	Provider string `json:"provider" validate:"required,oneof=google apple"`
+	IDToken  string `json:"id_token" validate:"required"`
+}
+
 func (uh *userHandler) Login(c echo.Context) error {
 
 	var req LoginRequest
@@ -52,7 +61,7 @@ func (uh *userHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "email or password is empty")
 	}
 
-	paseto, err := uh.Authentication.Register(c.Request().Context(), req.Username, req.Password, req.Email)
+	paseto, err := uh.Authentication.Register(c.Request().Context(), req.Username, req.Password, req.Email, req.Phone)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -75,4 +84,25 @@ func (uh *userHandler) CheckPermission(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ok)
+}
+
+func (uh *userHandler) OAuthLogin(c echo.Context) error {
+	var req OAuthLoginRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid request"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	token, err := uh.Authentication.OAuthLoginWithFirebase(c.Request().Context(), req.Provider, req.IDToken)
+	if err != nil {
+		return c.JSON(err.(*echo.HTTPError).Code, echo.Map{"error": err.(*echo.HTTPError).Message})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "OAuth login successful",
+		"token":   token.Token,
+	})
 }

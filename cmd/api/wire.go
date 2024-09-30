@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 	"goflare.io/auth"
 	"goflare.io/auth/config"
+	"goflare.io/auth/firebase"
 	"goflare.io/auth/handler"
 	"goflare.io/auth/middleware"
 	"goflare.io/auth/permission"
@@ -20,9 +21,9 @@ func InitializeAuthService() (*server.Server, error) {
 	wire.Build(
 		config.ProvideApplicationConfig,
 		config.NewLogger,
-		config.ProvidePasetoSecret,
 		config.ProvidePostgresConn,
 		config.ProvideEnforcer,
+		firebase.NewFirebaseClient,
 		user.NewRepository,
 		user.NewService,
 		role.NewRepository,

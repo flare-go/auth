@@ -1,4 +1,4 @@
--- 創建自定義類型
+CREATE TYPE provider_type AS ENUM ('email', 'google', 'apple');
 
 CREATE TYPE action_type AS ENUM ('CREATE', 'READ', 'UPDATE', 'DELETE', 'LIST');
 
@@ -7,12 +7,18 @@ CREATE TYPE resource_type AS ENUM('USER', 'ROLE', 'PERMISSION', 'PRODUCT', 'ORDE
 
 CREATE TABLE users (
                        id SERIAL PRIMARY KEY,
-                       username VARCHAR(100) NOT NULL UNIQUE CHECK (length(name) >= 2),
-                       password_hash VARCHAR(255) NOT NULL,
-                       email VARCHAR(100) NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._+%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'),
+                       username VARCHAR(100) NOT NULL UNIQUE CHECK (length(username) >= 2),
+                       password_hash VARCHAR(255),
+                       email VARCHAR(100) NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]+$'),
+                       phone VARCHAR(20) DEFAULT '' NOT NULL,
+                       firebase_uid VARCHAR(255) UNIQUE,
+                       provider provider_type NOT NULL DEFAULT 'email',
+                       display_name VARCHAR(255),
+                       photo_url VARCHAR(512),
                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
 
 CREATE TABLE roles (
                        id SERIAL PRIMARY KEY,

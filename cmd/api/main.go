@@ -1,21 +1,31 @@
 package main
 
-import "log"
+import (
+	"context"
+	"log"
+	"net"
+
+	pb "goflare.io/auth/proto/pb"
+	"google.golang.org/grpc"
+)
+
+type grpcServer struct {
+	pb.UnimplementedServiceServer
+}
+
+func (s *grpcServer) Ping(ctx context.Context, in *pb.PingRequest) (*pb.PingResponse, error) {
+	return &pb.PingResponse{Results: "Hello Shop"}, nil
+}
 
 func main() {
-
-	server, err := InitializeAuthService()
+	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		log.Fatal(err)
-		return
+		log.Fatalf("failed to listen: %v", err)
 	}
-
-	if err = server.Authentication.LoadPolicy(); err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	if err = server.Run(":8080"); err != nil {
-		log.Fatal(err.Error())
+	s := grpc.NewServer()
+	pb.RegisterServiceServer(s, &grpcServer{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err = s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"goflare.io/auth/driver"
@@ -58,7 +59,7 @@ func (r *repository) GetByID(ctx context.Context, id uint32) (*models.User, erro
 	}
 
 	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.ID = id
+	user.ID = int(id)
 
 	return user, nil
 }

@@ -1,13 +1,12 @@
 package config
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
+	"fmt"
+	"strings"
+
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"goflare.io/auth/driver"
-	"goflare.io/auth/models"
-	"os"
 )
 
 const (
@@ -18,70 +17,42 @@ const (
 	Environment     = "environment"
 )
 
-type AppConfig struct {
-	API              string `json:"api" mapstructure:"api"`
-	UI               string `json:"ui" mapstructure:"ui"`
-	PostgresURI      string `json:"postgres_uri" mapstructure:"db_connection_string"`
-	RedisAddr        string `json:"redis_addr"`
-	RedisPassword    string `json:"redis_password"`
-	PasetoPrivateKey string `json:"paseto_private_key" mapstructure:"paseto_public_key"`
-	PasetoPublicKey  string `json:"paseto_public_key" mapstructure:"paseto_private_key"`
-	DB               *driver.DB
-	//Validate         *validator.Validate
-	Logger *zap.Logger
+type Config struct {
+	Postgres PostgresConfig
 }
 
-func ProvideApplicationConfig() *AppConfig {
-
-	var appConfig AppConfig
-
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil
-	}
-	appConfig.Logger = logger
-
-	_ = godotenv.Load("local.env")
-
-	if cmp.Equal(os.Getenv(Environment), Local) {
-		appConfig.PostgresURI = os.Getenv("postgres_uri")
-		appConfig.PasetoPrivateKey = os.Getenv("paseto_private_key")
-		appConfig.PasetoPublicKey = os.Getenv("paseto_public_key")
-		appConfig.API = os.Getenv("api")
-		appConfig.UI = os.Getenv("ui")
-		appConfig.RedisAddr = os.Getenv("redis_addr")
-
-		return &appConfig
-	}
-	return &appConfig
+type PostgresConfig struct {
+	URL string `mapstructure:"url"`
 }
 
-func ProvidePostgresConn(appConfig *AppConfig) (driver.PostgresPool, error) {
+func ProvideApplicationConfig() (*Config, error) {
 
-	conn, err := driver.ConnectSQL(appConfig.PostgresURI)
+	viper.SetConfigFile("./config.yaml")
+	viper.SetConfigType("yaml")
+
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	return &config, nil
+}
+
+func ProvidePostgresConn(appConfig *Config) (driver.PostgresPool, error) {
+
+	conn, err := driver.ConnectSQL(appConfig.Postgres.URL)
 	if err != nil {
 		return nil, err
 	}
 
 	return conn.Pool, nil
-}
-
-func ProvideRedisConn(appConfig *AppConfig) *redis.Client {
-
-	conn, err := driver.ConnectRedis(appConfig.RedisAddr, appConfig.RedisPassword, 0)
-	if err != nil {
-		return nil
-	}
-
-	return conn
-}
-
-func ProvidePasetoSecret(appConfig *AppConfig) models.PasetoSecret {
-
-	return models.PasetoSecret{
-		PasetoPublicKey:  appConfig.PasetoPublicKey,
-		PasetoPrivateKey: appConfig.PasetoPrivateKey,
-	}
 }
 
 func NewLogger() *zap.Logger {

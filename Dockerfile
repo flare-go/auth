@@ -1,39 +1,57 @@
-# 第一階段：構建階段
-FROM golang:1.23 as builder
+# Build stage
+FROM golang:1.23.0-alpine3.19 AS builder
 
-# 設定工作目錄
-WORKDIR /app
+# Set the working directory
+WORKDIR /build
 
-# 複製 go.mod 和 go.sum 來利用 Docker 的構建快取機制
+# Set Go environment variables
+ENV GOPATH /go
+ENV GOCACHE /go-build
+
+# Install necessary build tools
+RUN apk update && apk add --no-cache git
+
+# Copy dependency files
 COPY go.mod go.sum ./
 
-# 下載依賴
+# Download dependencies
 RUN go mod download
 
-# 複製其餘的應用程式原始碼
+# Copy source code and configuration files
 COPY . .
 
-# 編譯應用程式，啟用優化標誌
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/api ./cmd/api
+# Compile the application
+# -ldflags="-w -s" removes debugging information and symbol tables to reduce the size of the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -a -installsuffix cgo -o auth ./cmd/api
 
-# 第二階段：運行階段
-FROM alpine:3.18
+# Final stage
+FROM alpine:3.19
 
-# 設定工作目錄
+# Add metadata
+LABEL maintainer="Your Name <your.email@example.com>"
+LABEL version="1.0"
+LABEL description="Auth Service for GoFlare"
+
+# Set the working directory
 WORKDIR /app
 
-# 從構建階段複製編譯後的二進制文件
-COPY --from=builder /app/api .
+# Copy the binary and configuration files from the build stage
+COPY --from=builder /build/auth .
+COPY --from=builder /build/config.yaml .
+COPY --from=builder /build/firebase-service-account.json .
+COPY --from=builder /build/casbin.conf .
 
-# 複製配置文件到容器中
-COPY casbin.conf .
-COPY local.env .
+# Create a non-root user
+RUN adduser -D -g '' appuser
 
-# 設定默認環境變量
-ENV ECHO_MODE=release
+# Ensure the application user has permission to read the config files
+RUN chown -R appuser:appuser /app
 
-# 開放應用程式需要的端口（假設 Echo 預設使用 8000 端口）
-EXPOSE 8000
+# Switch to the non-root user
+USER appuser
 
-# 設定容器啟動時運行的指令
-CMD ["./api"]
+# Specify the container start command
+CMD ["./auth"]
+
+# Declare the port the container will use
+EXPOSE 50051

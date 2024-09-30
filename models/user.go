@@ -6,12 +6,18 @@ import (
 )
 
 type User struct {
-	ID           uint32    `json:"id"`
+	ID           int       `json:"id"`
 	Username     string    `json:"username"`
-	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
+	Email        string    `json:"email"`
+	Phone        string    `json:"phone"`
+	FirebaseUID  string    `json:"firebase_uid"`
+	Provider     string    `json:"provider"`
+	DisplayName  string    `json:"display_name"`
+	PhotoURL     string    `json:"photo_url"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+	LastSignInAt time.Time `json:"last_sign_in_at"`
 }
 
 func NewUser() *User {
@@ -44,7 +50,7 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 		return nil
 	}
 
-	u.ID = id
+	u.ID = int(id)
 	u.Username = username
 	u.PasswordHash = passwordHash
 	u.Email = email

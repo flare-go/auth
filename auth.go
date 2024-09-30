@@ -2,30 +2,41 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"firebase.google.com/go/v4/auth"
+	"goflare.io/auth/firebaseauth"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/o1egl/paseto"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ed25519"
+
 	"goflare.io/auth/models"
 	"goflare.io/auth/models/enum"
 	"goflare.io/auth/permission"
 	"goflare.io/auth/role"
 	"goflare.io/auth/user"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/ed25519"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type Authentication interface {
-	LoadPolicy() error
+	LoadPolicy(ctx context.Context) error
 	GeneratePASETOToken(userID uint32) (*models.PASETOToken, error)
 	ValidatePASETOToken(tokenString string) (*models.Claims, error)
 	RevokePASETOToken(tokenString string) error
 	RefreshPASETOToken(refreshToken string) (*models.PASETOToken, error)
-	Register(ctx context.Context, username, password, email string) (*models.PASETOToken, error)
+	Register(ctx context.Context, username, password, email, phone string) (*models.PASETOToken, error)
 	Login(ctx context.Context, email, password string) (*models.PASETOToken, error)
+	RegisterWithFirebase(ctx context.Context, username, password, email, phone string) (*models.FirebaseToken, error)
+	LoginWithFirebase(ctx context.Context, email, password string) (*models.FirebaseToken, error)
+	OAuthLoginWithFirebase(ctx context.Context, provider, idToken string) (*models.FirebaseToken, error)
 	Logout(token string) error
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	DeleteRole(ctx context.Context, roleID uint32) error
@@ -41,92 +52,89 @@ type Authentication interface {
 }
 
 type AuthenticationImpl struct {
-	publicKey  string
-	privateKey string
-	user       user.Service
-	role       role.Service
-	permission permission.Service
-	enforcer   *casbin.Enforcer
-	mu         sync.RWMutex
+	publicKey      string
+	privateKey     string
+	user           user.Service
+	role           role.Service
+	permission     permission.Service
+	enforcer       *casbin.Enforcer
+	FirebaseClient *firebaseauth.Client
+	mu             sync.RWMutex
 }
 
 func NewAuthentication(
 	user user.Service,
 	role role.Service,
 	permission permission.Service,
-	secret models.PasetoSecret,
 	enforcer *casbin.Enforcer,
+	client *firebaseauth.Client,
 ) Authentication {
 	return &AuthenticationImpl{
-		publicKey:  secret.PasetoPublicKey,
-		privateKey: secret.PasetoPrivateKey,
-		user:       user,
-		role:       role,
-		permission: permission,
-		enforcer:   enforcer,
+		user:           user,
+		role:           role,
+		permission:     permission,
+		FirebaseClient: client,
+		enforcer:       enforcer,
 	}
 }
 
-func (auth *AuthenticationImpl) LoadPolicy() error {
-	ctx := context.Background()
-
-	// 加載所有角色和權限
-	roleModels, err := auth.role.ListAllRoles(ctx)
+func (s *AuthenticationImpl) LoadPolicy(ctx context.Context) error {
+	roleModels, err := s.role.ListAllRoles(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list roles: %w", err)
 	}
 
+	var errs []error
 	for _, roleModel := range roleModels {
-		permissions, err := auth.role.GetRolePermissions(ctx, roleModel.ID)
+		permissions, err := s.role.GetRolePermissions(ctx, roleModel.ID)
 		if err != nil {
-			return fmt.Errorf("failed to get permissions for role %s: %w", roleModel.Name, err)
+			errs = append(errs, fmt.Errorf("failed to get permissions for role %s: %w", roleModel.Name, err))
+			continue
 		}
 
 		for _, perm := range permissions {
-			if _, err = auth.enforcer.AddPolicy(roleModel.Name, string(perm.Resource), string(perm.Action)); err != nil {
-				return fmt.Errorf("failed to add policy for role %s: %w", roleModel.Name, err)
+			if _, err = s.enforcer.AddPolicy(roleModel.Name, string(perm.Resource), string(perm.Action)); err != nil {
+				errs = append(errs, fmt.Errorf("failed to add policy for role %s: %w", roleModel.Name, err))
 			}
 		}
 	}
 
 	// 加載所有用戶和角色
-	userModels, err := auth.user.ListAllUsers(ctx)
+	userModels, err := s.user.ListAllUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list users: %w", err)
 	}
 
 	for _, userModel := range userModels {
-		userRoles, err := auth.user.GetUserRoles(ctx, userModel.ID)
+		userRoles, err := s.user.GetUserRoles(ctx, uint32(userModel.ID))
 		if err != nil {
 			return fmt.Errorf("failed to get roles for user %s: %w", userModel.Username, err)
 		}
 
 		for _, userRole := range userRoles {
-			if _, err = auth.enforcer.AddGroupingPolicy(userModel.Username, userRole.Name); err != nil {
+			if _, err = s.enforcer.AddGroupingPolicy(userModel.Username, userRole.Name); err != nil {
 				return fmt.Errorf("failed to add grouping policy for user %s: %w", userModel.Username, err)
 			}
 		}
 	}
 
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 
-func (auth *AuthenticationImpl) GeneratePASETOToken(userID uint32) (*models.PASETOToken, error) {
+func (s *AuthenticationImpl) GeneratePASETOToken(userID uint32) (*models.PASETOToken, error) {
 
 	expiration := time.Now().Add(120 * time.Minute)
 
 	token := paseto.NewV2()
 
-	//payload := map[string]any{
-	//	"UserID":     userID,
-	//	"Expiration": expiration.Unix(),
-	//}
-
 	payload := models.Claims{
 		UserID:     userID,
 		Expiration: expiration.Unix(),
 	}
-	privateKeyBase64 := auth.privateKey
+	privateKeyBase64 := s.privateKey
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
 	if err != nil {
 		return nil, err
@@ -144,11 +152,11 @@ func (auth *AuthenticationImpl) GeneratePASETOToken(userID uint32) (*models.PASE
 	}, nil
 }
 
-func (auth *AuthenticationImpl) ValidatePASETOToken(tokenString string) (*models.Claims, error) {
+func (s *AuthenticationImpl) ValidatePASETOToken(tokenString string) (*models.Claims, error) {
 
 	token := paseto.NewV2()
 
-	publicKeyBase64 := auth.publicKey
+	publicKeyBase64 := s.publicKey
 	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
 	if err != nil {
 		return nil, err
@@ -169,10 +177,12 @@ func (auth *AuthenticationImpl) ValidatePASETOToken(tokenString string) (*models
 	return &payload, nil
 }
 
-func (auth *AuthenticationImpl) RevokePASETOToken(tokenString string) error {
+func (s *AuthenticationImpl) RevokePASETOToken(tokenString string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	token := paseto.NewV2()
-	publicKeyBase64 := auth.publicKey
+	publicKeyBase64 := s.publicKey
 	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
 	if err != nil {
 		return err
@@ -196,10 +206,10 @@ func (auth *AuthenticationImpl) RevokePASETOToken(tokenString string) error {
 	return nil
 }
 
-func (auth *AuthenticationImpl) RefreshPASETOToken(refreshToken string) (*models.PASETOToken, error) {
+func (s *AuthenticationImpl) RefreshPASETOToken(refreshToken string) (*models.PASETOToken, error) {
 
 	token := paseto.NewV2()
-	publicKeyBase64 := auth.publicKey
+	publicKeyBase64 := s.publicKey
 	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
 	if err != nil {
 		return nil, err
@@ -212,38 +222,35 @@ func (auth *AuthenticationImpl) RefreshPASETOToken(refreshToken string) (*models
 		return nil, err
 	}
 
-	return auth.GeneratePASETOToken(payload.UserID)
+	return s.GeneratePASETOToken(payload.UserID)
 }
 
-func (auth *AuthenticationImpl) Register(ctx context.Context, username, password, email string) (*models.PASETOToken, error) {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) Register(ctx context.Context, username, password, email, phone string) (*models.PASETOToken, error) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := auth.user.Create(ctx, &models.User{
+	userModel := &models.User{
 		Username:     username,
 		PasswordHash: string(hashedPassword),
 		Email:        email,
+		Phone:        phone,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
-	})
+	}
 
-	if err != nil {
+	if _, err = s.user.Create(ctx, userModel); err != nil {
 		return nil, err
 	}
 
-	return auth.GeneratePASETOToken(id)
+	return s.GeneratePASETOToken(uint32(userModel.ID))
 }
 
-func (auth *AuthenticationImpl) Login(ctx context.Context, email, password string) (*models.PASETOToken, error) {
-	auth.mu.RLock()
-	defer auth.mu.RUnlock()
+func (s *AuthenticationImpl) Login(ctx context.Context, email, password string) (*models.PASETOToken, error) {
 
-	userModel, err := auth.user.GetByEmail(ctx, email)
+	userModel, err := s.user.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
@@ -252,19 +259,156 @@ func (auth *AuthenticationImpl) Login(ctx context.Context, email, password strin
 		return nil, err
 	}
 
-	return auth.GeneratePASETOToken(userModel.ID)
+	return s.GeneratePASETOToken(uint32(userModel.ID))
 }
 
-func (auth *AuthenticationImpl) Logout(token string) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) RegisterWithFirebase(ctx context.Context, username, password, email, phone string) (*models.FirebaseToken, error) {
 
-	return auth.RevokePASETOToken(token)
+	// 使用 Firebase Auth 創建用戶
+	params := (&auth.UserToCreate{}).
+		Email(email).
+		EmailVerified(false).
+		Password(password).
+		DisplayName(username).
+		PhoneNumber(phone).
+		Disabled(false)
+
+	userRecord, err := s.FirebaseClient.Auth.CreateUser(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	// 插入用戶到 Postgres
+	userModel := &models.User{
+		Username:     username,
+		PasswordHash: string(hashedPassword),
+		Email:        email,
+		Phone:        phone,
+		FirebaseUID:  userRecord.UID,
+		Provider:     "email",
+		DisplayName:  userRecord.DisplayName,
+		PhotoURL:     userRecord.PhotoURL,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if _, err = s.user.Create(ctx, userModel); err != nil {
+		if err = s.FirebaseClient.Auth.DeleteUser(ctx, userRecord.UID); err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	// 生成 Firebase 自定義 Token
+	customToken, err := s.FirebaseClient.Auth.CustomToken(ctx, userRecord.UID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.FirebaseToken{
+		Token: customToken,
+	}, nil
 }
 
-func (auth *AuthenticationImpl) CreateRole(ctx context.Context, name, description string) (*models.Role, error) {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) LoginWithFirebase(ctx context.Context, email, password string) (*models.FirebaseToken, error) {
+
+	// 從 Postgres 根據 email 獲取用戶
+	userModel, err := s.user.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	// 比較密碼
+	if err = bcrypt.CompareHashAndPassword([]byte(userModel.PasswordHash), []byte(password)); err != nil {
+		return nil, err
+	}
+
+	// 生成 Firebase 自定義 Token
+	customToken, err := s.FirebaseClient.Auth.CustomToken(ctx, userModel.FirebaseUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.FirebaseToken{
+		Token: customToken,
+	}, nil
+}
+
+func (s *AuthenticationImpl) OAuthLoginWithFirebase(ctx context.Context, provider, idToken string) (*models.FirebaseToken, error) {
+
+	// 驗證 ID Token 並取得 Firebase 用戶
+	decodedToken, err := s.FirebaseClient.Auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID token: %w", err)
+	}
+
+	userRecord, err := s.FirebaseClient.Auth.GetUser(ctx, decodedToken.UID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve user from Firebase: %w", err)
+	}
+
+	// 從 Postgres 根據 Firebase UID 獲取用戶
+	userModel, err := s.user.GetByFirebaseUID(ctx, userRecord.UID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// 用戶不存在，創建新用戶
+			userModel = &models.User{
+				Username:     userRecord.DisplayName,
+				Email:        userRecord.Email,
+				Phone:        userRecord.PhoneNumber,
+				FirebaseUID:  userRecord.UID,
+				Provider:     strings.ToLower(provider), // 確保 provider 小寫
+				DisplayName:  userRecord.DisplayName,
+				PhotoURL:     userRecord.PhotoURL,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+				LastSignInAt: time.Now(),
+			}
+
+			userID, err := s.user.Create(ctx, userModel)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create user: %w", err)
+			}
+
+			userModel.ID = int(userID)
+		} else {
+			return nil, fmt.Errorf("database error: %w", err)
+		}
+	} else {
+		// 用戶已存在，更新最後登入時間
+		err = s.user.UpdateLastSignIn(ctx, uint32(userModel.ID))
+		if err != nil {
+			return nil, fmt.Errorf("failed to update last sign-in time: %w", err)
+		}
+	}
+
+	// 確保使用者的 provider 一致
+	if strings.ToLower(userModel.Provider) != strings.ToLower(provider) {
+		return nil, fmt.Errorf("provider mismatch")
+	}
+
+	// 生成 Firebase 自定義 Token
+	customToken, err := s.FirebaseClient.Auth.CustomToken(ctx, userModel.FirebaseUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create custom token: %w", err)
+	}
+
+	return &models.FirebaseToken{
+		Token: customToken,
+	}, nil
+}
+
+func (s *AuthenticationImpl) Logout(token string) error {
+
+	return s.RevokePASETOToken(token)
+}
+
+func (s *AuthenticationImpl) CreateRole(ctx context.Context, name, description string) (*models.Role, error) {
 
 	roleModel := &models.Role{
 		Name:        name,
@@ -273,81 +417,73 @@ func (auth *AuthenticationImpl) CreateRole(ctx context.Context, name, descriptio
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := auth.role.Create(ctx, roleModel); err != nil {
+	if err := s.role.Create(ctx, roleModel); err != nil {
 		return nil, err
 	}
 
 	return roleModel, nil
 }
 
-func (auth *AuthenticationImpl) DeleteRole(ctx context.Context, roleID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) DeleteRole(ctx context.Context, roleID uint32) error {
 
 	// First, remove all references to this role in the Casbin enforcer
-	if _, err := auth.enforcer.DeleteRole(strconv.Itoa(int(roleID))); err != nil {
+	if _, err := s.enforcer.DeleteRole(strconv.Itoa(int(roleID))); err != nil {
 		return err
 	}
 
 	// Then delete the role from the database
-	return auth.role.Delete(ctx, roleID)
+	return s.role.Delete(ctx, roleID)
 }
 
-func (auth *AuthenticationImpl) AssignRoleToUser(ctx context.Context, userID, roleID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) AssignRoleToUser(ctx context.Context, userID, roleID uint32) error {
 
-	userModel, err := auth.user.GetByID(ctx, userID)
+	userModel, err := s.user.GetByID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
-	roleModel, err := auth.role.GetByID(ctx, roleID)
+	roleModel, err := s.role.GetByID(ctx, roleID)
 	if err != nil {
 		return err
 	}
 
-	if err = auth.user.AssignRoleToUserWithTx(ctx, userID, roleID); err != nil {
+	if err = s.user.AssignRoleToUserWithTx(ctx, userID, roleID); err != nil {
 		return err
 	}
 
 	// Add the role to the user in Casbin
-	if _, err = auth.enforcer.AddGroupingPolicy(userModel.Username, roleModel.Name); err != nil {
+	if _, err = s.enforcer.AddGroupingPolicy(userModel.Username, roleModel.Name); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (auth *AuthenticationImpl) RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error {
 
-	userModel, err := auth.user.GetByID(ctx, userID)
+	userModel, err := s.user.GetByID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
-	roleModel, err := auth.role.GetByID(ctx, roleID)
+	roleModel, err := s.role.GetByID(ctx, roleID)
 	if err != nil {
 		return err
 	}
 
-	if err = auth.user.RemoveRoleFromUser(ctx, userID, roleID); err != nil {
+	if err = s.user.RemoveRoleFromUser(ctx, userID, roleID); err != nil {
 		return err
 	}
 
 	// Remove the role from the user in Casbin
-	if _, err = auth.enforcer.DeleteRoleForUser(userModel.Username, roleModel.Name); err != nil {
+	if _, err = s.enforcer.DeleteRoleForUser(userModel.Username, roleModel.Name); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (auth *AuthenticationImpl) CreatePermission(ctx context.Context, name, description string, resource enum.ResourceType, action enum.ActionType) (*models.Permission, error) {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) CreatePermission(ctx context.Context, name, description string, resource enum.ResourceType, action enum.ActionType) (*models.Permission, error) {
 
 	perm := &models.Permission{
 		Name:        name,
@@ -358,112 +494,100 @@ func (auth *AuthenticationImpl) CreatePermission(ctx context.Context, name, desc
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := auth.permission.Create(ctx, perm); err != nil {
+	if err := s.permission.Create(ctx, perm); err != nil {
 		return nil, err
 	}
 
 	return perm, nil
 }
 
-func (auth *AuthenticationImpl) DeletePermission(ctx context.Context, permissionID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) DeletePermission(ctx context.Context, permissionID uint32) error {
 
-	perm, err := auth.permission.GetByID(ctx, permissionID)
+	perm, err := s.permission.GetByID(ctx, permissionID)
 	if err != nil {
 		return err
 	}
 
 	// Remove all policies related to this permission from Casbin
-	if _, err = auth.enforcer.RemoveFilteredPolicy(1, string(perm.Resource), string(perm.Action)); err != nil {
+	if _, err = s.enforcer.RemoveFilteredPolicy(1, string(perm.Resource), string(perm.Action)); err != nil {
 		return err
 	}
 
 	// Delete the permission from the database
-	return auth.permission.Delete(ctx, permissionID)
+	return s.permission.Delete(ctx, permissionID)
 }
 
-func (auth *AuthenticationImpl) AssignPermissionToRole(ctx context.Context, roleID, permissionID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) AssignPermissionToRole(ctx context.Context, roleID, permissionID uint32) error {
 
-	roleModel, err := auth.role.GetByID(ctx, roleID)
+	roleModel, err := s.role.GetByID(ctx, roleID)
 	if err != nil {
 		return err
 	}
 
-	perm, err := auth.permission.GetByID(ctx, permissionID)
+	perm, err := s.permission.GetByID(ctx, permissionID)
 	if err != nil {
 		return err
 	}
 
-	if err = auth.role.AssignPermissionToRole(ctx, roleID, permissionID); err != nil {
+	if err = s.role.AssignPermissionToRole(ctx, roleID, permissionID); err != nil {
 		return err
 	}
 
 	// Add the permission to the role in Casbin
-	if _, err = auth.enforcer.AddPolicy(roleModel.Name, string(perm.Resource), string(perm.Action)); err != nil {
+	if _, err = s.enforcer.AddPolicy(roleModel.Name, string(perm.Resource), string(perm.Action)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (auth *AuthenticationImpl) RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint32) error {
-	auth.mu.Lock()
-	defer auth.mu.Unlock()
+func (s *AuthenticationImpl) RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint32) error {
 
-	roleModel, err := auth.role.GetByID(ctx, roleID)
+	roleModel, err := s.role.GetByID(ctx, roleID)
 	if err != nil {
 		return err
 	}
 
-	permModel, err := auth.permission.GetByID(ctx, permissionID)
+	permModel, err := s.permission.GetByID(ctx, permissionID)
 	if err != nil {
 		return err
 	}
 
-	if err = auth.role.RemovePermissionFromRole(ctx, roleID, permissionID); err != nil {
+	if err = s.role.RemovePermissionFromRole(ctx, roleID, permissionID); err != nil {
 		return err
 	}
 
 	// Remove the permission from the role in Casbin
-	if _, err = auth.enforcer.RemovePolicy(roleModel.Name, string(permModel.Resource), string(permModel.Action)); err != nil {
+	if _, err = s.enforcer.RemovePolicy(roleModel.Name, string(permModel.Resource), string(permModel.Action)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (auth *AuthenticationImpl) CheckPermission(ctx context.Context, userID uint32, resource enum.ResourceType, action enum.ActionType) (bool, error) {
-	auth.mu.RLock()
-	defer auth.mu.RUnlock()
+func (s *AuthenticationImpl) CheckPermission(ctx context.Context, userID uint32, resource enum.ResourceType, action enum.ActionType) (bool, error) {
 
-	userModel, err := auth.user.GetByID(ctx, userID)
+	userModel, err := s.user.GetByID(ctx, userID)
 	if err != nil {
 		return false, err
 	}
 
-	return auth.enforcer.Enforce(userModel.Username, string(resource), string(action))
+	return s.enforcer.Enforce(userModel.Username, string(resource), string(action))
 }
 
-func (auth *AuthenticationImpl) GetUserRoles(ctx context.Context, userID uint32) ([]string, error) {
-	auth.mu.RLock()
-	defer auth.mu.RUnlock()
+func (s *AuthenticationImpl) GetUserRoles(ctx context.Context, userID uint32) ([]string, error) {
 
-	userModel, err := auth.user.GetByID(ctx, userID)
+	userModel, err := s.user.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return auth.enforcer.GetRolesForUser(userModel.Username)
+	return s.enforcer.GetRolesForUser(userModel.Username)
 }
 
-func (auth *AuthenticationImpl) GetRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error) {
-	auth.mu.RLock()
-	defer auth.mu.RUnlock()
+func (s *AuthenticationImpl) GetRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error) {
 
-	permissions, err := auth.role.GetRolePermissions(ctx, roleID)
+	permissions, err := s.role.GetRolePermissions(ctx, roleID)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,8 @@ type Service interface {
 	GetByID(ctx context.Context, id uint32) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error)
+	UpdateLastSignIn(ctx context.Context, userID uint32) error
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
 	GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
@@ -52,6 +54,14 @@ func (s *service) RemoveRoleFromUser(ctx context.Context, userID, roleID uint32)
 
 func (s *service) GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
 	return s.repo.GetUserRoles(ctx, userID)
+}
+
+func (s *service) UpdateLastSignIn(ctx context.Context, userID uint32) error {
+	panic("implement me")
+}
+
+func (s *service) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error) {
+	panic("implement me")
 }
 
 func (s *service) ListAllUsers(ctx context.Context) ([]*models.User, error) {

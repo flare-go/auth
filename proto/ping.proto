@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package shop;
+
+option go_package = "/proto";
+
+service Service {
+  rpc Ping (PingRequest) returns (PingResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string results = 1; // key: service name, value: ping result
+}
