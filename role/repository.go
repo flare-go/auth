@@ -3,6 +3,7 @@ package role
 import (
 	"context"
 	"errors"
+
 	"go.uber.org/zap"
 	"goflare.io/auth/driver"
 	"goflare.io/auth/models"
@@ -10,12 +11,12 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, role *models.Role) error
-	GetByID(ctx context.Context, id uint32) (*models.Role, error)
-	Delete(ctx context.Context, roleID uint32) error
+	CreateRole(ctx context.Context, role *models.Role) error
+	FindRoleByID(ctx context.Context, id uint32) (*models.Role, error)
+	DeleteRole(ctx context.Context, roleID uint32) error
 	AssignPermissionToRole(ctx context.Context, roleID, permissionID uint32) error
 	RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint32) error
-	GetRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error)
+	FindRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error)
 	ListAllRoles(ctx context.Context) ([]*models.Role, error)
 }
 
@@ -31,7 +32,7 @@ func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 	}
 }
 
-func (r *repository) Create(ctx context.Context, role *models.Role) error {
+func (r *repository) CreateRole(ctx context.Context, role *models.Role) error {
 
 	return r.queries.CreateRole(ctx, sqlc.CreateRoleParams{
 		Name:        role.Name,
@@ -39,7 +40,7 @@ func (r *repository) Create(ctx context.Context, role *models.Role) error {
 	})
 }
 
-func (r *repository) GetByID(ctx context.Context, id uint32) (*models.Role, error) {
+func (r *repository) FindRoleByID(ctx context.Context, id uint32) (*models.Role, error) {
 
 	if id == 0 {
 		r.logger.Error("id is required")
@@ -55,7 +56,7 @@ func (r *repository) GetByID(ctx context.Context, id uint32) (*models.Role, erro
 	return models.NewRole().ConvertFromSQLCRole(sqlcRole), err
 }
 
-func (r *repository) Delete(ctx context.Context, roleID uint32) error {
+func (r *repository) DeleteRole(ctx context.Context, roleID uint32) error {
 
 	return r.queries.DeleteRole(ctx, roleID)
 }
@@ -76,7 +77,7 @@ func (r *repository) RemovePermissionFromRole(ctx context.Context, roleID, permi
 	})
 }
 
-func (r *repository) GetRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error) {
+func (r *repository) FindRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error) {
 
 	if roleID == 0 {
 		r.logger.Error("id is required")

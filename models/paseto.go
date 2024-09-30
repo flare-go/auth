@@ -8,8 +8,10 @@ type PasetoSecret struct {
 }
 
 type PASETOToken struct {
-	Token     string
-	ExpiresAt time.Time
+	UserID     uint32
+	Token      string
+	Expiration int64
+	ExpiresAt  time.Time
 }
 
 type Claims struct {

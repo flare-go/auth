@@ -2,20 +2,23 @@ package server
 
 import (
 	"context"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"goflare.io/auth"
-	"goflare.io/auth/handler"
-	authMiddleware "goflare.io/auth/middleware"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"goflare.io/auth/authentication"
+	"goflare.io/auth/authorization"
+	"goflare.io/auth/handler"
+	authMiddleware "goflare.io/auth/middleware"
 )
 
 type Server struct {
 	echo           *echo.Echo
-	Authentication auth.Authentication
+	Authentication authentication.Service
+	Authorization  authorization.Service
 	User           handler.UserHandler
 	Middleware     *authMiddleware.AuthenticationMiddleware
 }
@@ -23,11 +26,13 @@ type Server struct {
 func NewServer(
 	middleware *authMiddleware.AuthenticationMiddleware,
 	User handler.UserHandler,
-	Authentication auth.Authentication,
+	Authentication authentication.Service,
+	Authorization authorization.Service,
 ) *Server {
 	return &Server{
 		echo:           echo.New(),
 		Authentication: Authentication,
+		Authorization:  Authorization,
 		Middleware:     middleware,
 		User:           User,
 	}

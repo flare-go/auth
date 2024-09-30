@@ -5,12 +5,12 @@ package main
 
 import (
 	"github.com/google/wire"
-	"goflare.io/auth"
+	"goflare.io/auth/authentication"
+	"goflare.io/auth/authorization"
 	"goflare.io/auth/config"
 	"goflare.io/auth/firebase"
 	"goflare.io/auth/handler"
 	"goflare.io/auth/middleware"
-	"goflare.io/auth/permission"
 	"goflare.io/auth/role"
 	"goflare.io/auth/server"
 	"goflare.io/auth/user"
@@ -25,12 +25,10 @@ func InitializeAuthService() (*server.Server, error) {
 		config.ProvideEnforcer,
 		firebase.NewFirebaseClient,
 		user.NewRepository,
-		user.NewService,
 		role.NewRepository,
-		role.NewService,
-		permission.NewRepository,
-		permission.NewService,
-		auth.NewAuthentication,
+		firebase.NewService,
+		authorization.NewService,
+		authentication.NewService,
 		middleware.NewAuthenticationMiddleware,
 		handler.NewUserHandler,
 		server.NewServer,

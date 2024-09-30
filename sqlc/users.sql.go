@@ -18,9 +18,9 @@ RETURNING id
 `
 
 type CreateUserParams struct {
-	Username     string `json:"username"`
-	PasswordHash string `json:"passwordHash"`
-	Email        string `json:"email"`
+	Username     string  `json:"username"`
+	PasswordHash *string `json:"passwordHash"`
+	Email        string  `json:"email"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint32, error) {
@@ -39,21 +39,21 @@ func (q *Queries) DeleteUser(ctx context.Context, id uint32) error {
 	return err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
+const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE email = $1
 `
 
-type GetUserByEmailRow struct {
+type FindUserByEmailRow struct {
 	ID           uint32             `json:"id"`
-	PasswordHash string             `json:"passwordHash"`
+	PasswordHash *string            `json:"passwordHash"`
 	Username     string             `json:"username"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByEmailRow, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i GetUserByEmailRow
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (*FindUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, findUserByEmail, email)
+	var i FindUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.PasswordHash,
@@ -64,21 +64,48 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByE
 	return &i, err
 }
 
-const getUserByID = `-- name: GetUserByID :one
-SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE id = $1
+const findUserByFirebaseUID = `-- name: FindUserByFirebaseUID :one
+SELECT id, password_hash, username, email, created_at, updated_at  FROM users WHERE firebase_uid = $1
 `
 
-type GetUserByIDRow struct {
+type FindUserByFirebaseUIDRow struct {
+	ID           uint32             `json:"id"`
+	PasswordHash *string            `json:"passwordHash"`
 	Username     string             `json:"username"`
-	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
 
-func (q *Queries) GetUserByID(ctx context.Context, id uint32) (*GetUserByIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i GetUserByIDRow
+func (q *Queries) FindUserByFirebaseUID(ctx context.Context, firebaseUid *string) (*FindUserByFirebaseUIDRow, error) {
+	row := q.db.QueryRow(ctx, findUserByFirebaseUID, firebaseUid)
+	var i FindUserByFirebaseUIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.PasswordHash,
+		&i.Username,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const findUserByID = `-- name: FindUserByID :one
+SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE id = $1
+`
+
+type FindUserByIDRow struct {
+	Username     string             `json:"username"`
+	PasswordHash *string            `json:"passwordHash"`
+	Email        string             `json:"email"`
+	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
+}
+
+func (q *Queries) FindUserByID(ctx context.Context, id uint32) (*FindUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, findUserByID, id)
+	var i FindUserByIDRow
 	err := row.Scan(
 		&i.Username,
 		&i.PasswordHash,
@@ -89,21 +116,21 @@ func (q *Queries) GetUserByID(ctx context.Context, id uint32) (*GetUserByIDRow, 
 	return &i, err
 }
 
-const getUserByUsername = `-- name: GetUserByUsername :one
+const findUserByUsername = `-- name: FindUserByUsername :one
 SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE username = $1
 `
 
-type GetUserByUsernameRow struct {
+type FindUserByUsernameRow struct {
 	ID           uint32             `json:"id"`
-	PasswordHash string             `json:"passwordHash"`
+	PasswordHash *string            `json:"passwordHash"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (*GetUserByUsernameRow, error) {
-	row := q.db.QueryRow(ctx, getUserByUsername, username)
-	var i GetUserByUsernameRow
+func (q *Queries) FindUserByUsername(ctx context.Context, username string) (*FindUserByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, findUserByUsername, username)
+	var i FindUserByUsernameRow
 	err := row.Scan(
 		&i.ID,
 		&i.PasswordHash,
@@ -175,8 +202,8 @@ WHERE id = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID           uint32 `json:"id"`
-	PasswordHash string `json:"passwordHash"`
+	ID           uint32  `json:"id"`
+	PasswordHash *string `json:"passwordHash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {

@@ -1,12 +1,13 @@
 package models
 
 import (
-	"goflare.io/auth/sqlc"
 	"time"
+
+	"goflare.io/auth/sqlc"
 )
 
 type User struct {
-	ID           int       `json:"id"`
+	ID           uint32    `json:"id"`
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"-"`
 	Email        string    `json:"email"`
@@ -30,27 +31,40 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	var id uint32
 
 	switch sp := sqlcUser.(type) {
-	case *sqlc.GetUserByIDRow:
+	case *sqlc.FindUserByIDRow:
 		username = sp.Username
-		passwordHash = sp.PasswordHash
+		if sp.PasswordHash != nil {
+			passwordHash = *sp.PasswordHash
+		}
 		email = sp.Email
-	case *sqlc.GetUserByUsernameRow:
+	case *sqlc.FindUserByUsernameRow:
 		id = sp.ID
-		passwordHash = sp.PasswordHash
+		if sp.PasswordHash != nil {
+			passwordHash = *sp.PasswordHash
+		}
 		email = sp.Email
-	case *sqlc.GetUserByEmailRow:
+	case *sqlc.FindUserByEmailRow:
 		id = sp.ID
-		passwordHash = sp.PasswordHash
+		if sp.PasswordHash != nil {
+			passwordHash = *sp.PasswordHash
+		}
 		username = sp.Username
 	case *sqlc.ListUsersRow:
 		id = sp.ID
+		username = sp.Username
+		email = sp.Email
+	case *sqlc.FindUserByFirebaseUIDRow:
+		id = sp.ID
+		if sp.PasswordHash != nil {
+			passwordHash = *sp.PasswordHash
+		}
 		username = sp.Username
 		email = sp.Email
 	default:
 		return nil
 	}
 
-	u.ID = int(id)
+	u.ID = id
 	u.Username = username
 	u.PasswordHash = passwordHash
 	u.Email = email

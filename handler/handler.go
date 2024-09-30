@@ -4,7 +4,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"goflare.io/auth"
+	"goflare.io/auth/authentication"
+	"goflare.io/auth/firebase"
 	"goflare.io/auth/models/enum"
 )
 
@@ -15,19 +16,18 @@ type UserHandler interface {
 }
 
 type userHandler struct {
-	Authentication auth.Authentication
+	authentication  authentication.Service
+	firebaseService firebase.Service
 }
 
 func NewUserHandler(
-	Authentication auth.Authentication,
+	authentication authentication.Service,
+	firebaseService firebase.Service,
 ) UserHandler {
 	return &userHandler{
-		Authentication: Authentication,
+		authentication:  authentication,
+		firebaseService: firebaseService,
 	}
-}
-
-type AuthHandler struct {
-	AuthService auth.Authentication
 }
 
 type OAuthLoginRequest struct {
@@ -42,7 +42,7 @@ func (uh *userHandler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	paseto, err := uh.Authentication.Login(c.Request().Context(), req.Email, req.Password)
+	paseto, err := uh.authentication.Login(c.Request().Context(), req.Email, req.Password)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -61,7 +61,7 @@ func (uh *userHandler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "email or password is empty")
 	}
 
-	paseto, err := uh.Authentication.Register(c.Request().Context(), req.Username, req.Password, req.Email, req.Phone)
+	paseto, err := uh.authentication.Register(c.Request().Context(), req.Username, req.Password, req.Email, req.Phone)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -78,7 +78,7 @@ func (uh *userHandler) CheckPermission(c echo.Context) error {
 
 	userID := c.Get("user_id").(uint32)
 
-	ok, err := uh.Authentication.CheckPermission(c.Request().Context(), userID, enum.ResourceType(req.Resource), enum.ActionType(req.Action))
+	ok, err := uh.authentication.CheckPermission(c.Request().Context(), userID, enum.ResourceType(req.Resource), enum.ActionType(req.Action))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -96,7 +96,7 @@ func (uh *userHandler) OAuthLogin(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
-	token, err := uh.Authentication.OAuthLoginWithFirebase(c.Request().Context(), req.Provider, req.IDToken)
+	token, err := uh.firebaseService.OauthLogin(c.Request().Context(), req.Provider, req.IDToken)
 	if err != nil {
 		return c.JSON(err.(*echo.HTTPError).Code, echo.Map{"error": err.(*echo.HTTPError).Message})
 	}

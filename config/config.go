@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -19,10 +20,17 @@ const (
 
 type Config struct {
 	Postgres PostgresConfig
+	Paseto   PasetoConfig
 }
 
 type PostgresConfig struct {
 	URL string `mapstructure:"url"`
+}
+
+type PasetoConfig struct {
+	PublicSecretKey     string `mapstructure:"public_secret_key"`
+	PrivateSecretKey    string `mapstructure:"private_secret_key"`
+	TokenExpirationTime time.Duration
 }
 
 func ProvideApplicationConfig() (*Config, error) {
@@ -41,6 +49,8 @@ func ProvideApplicationConfig() (*Config, error) {
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+
+	config.Paseto.TokenExpirationTime = 120 * time.Minute
 
 	return &config, nil
 }

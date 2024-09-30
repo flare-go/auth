@@ -2,20 +2,21 @@ package middleware
 
 import (
 	"errors"
+
 	"github.com/labstack/echo/v4"
-	"goflare.io/auth"
+	"goflare.io/auth/authentication"
 )
 
 // AuthenticationMiddleware represents middleware for authentication
 type AuthenticationMiddleware struct {
-	authentication auth.Authentication
+	authentication authentication.Service
 }
 
 // NewAuthenticationMiddleware creates a new instance of the AuthenticationMiddleware
 // with the provided AuthenticationService and returns a pointer to it.
 // It initializes the logger using the InfrastructurePackageName constant.
 func NewAuthenticationMiddleware(
-	authentication auth.Authentication,
+	authentication authentication.Service,
 ) *AuthenticationMiddleware {
 	return &AuthenticationMiddleware{
 		authentication: authentication,
@@ -39,12 +40,12 @@ func (middleware *AuthenticationMiddleware) AuthorizeUser(next echo.HandlerFunc)
 			return errors.New("missing token")
 		}
 
-		claims, err := middleware.authentication.ValidatePASETOToken(tokenStr)
+		userID, err := middleware.authentication.ValidateToken(tokenStr)
 		if err != nil {
 			return err
 		}
 
-		c.Set("user_id", claims.UserID)
+		c.Set("user_id", userID)
 
 		return next(c)
 	}

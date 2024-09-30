@@ -13,14 +13,15 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, user *models.User) (uint32, error)
-	GetByID(ctx context.Context, id uint32) (*models.User, error)
-	GetByUsername(ctx context.Context, username string) (*models.User, error)
-	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) (uint32, error)
+	FindUserByID(ctx context.Context, id uint32) (*models.User, error)
+	FindUserByUsername(ctx context.Context, username string) (*models.User, error)
+	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
+	FindUserByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error)
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
 	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
-	GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
-	ListAllUsers(context.Context) ([]*models.User, error)
+	FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
+	ListAllUsers(ctx context.Context) ([]*models.User, error)
 }
 
 type repository struct {
@@ -37,41 +38,41 @@ func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 	}
 }
 
-func (r *repository) Create(ctx context.Context, user *models.User) (uint32, error) {
+func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint32, error) {
 	return r.queries.CreateUser(ctx, sqlc.CreateUserParams{
 		Username:     user.Username,
-		PasswordHash: user.PasswordHash,
+		PasswordHash: &user.PasswordHash,
 		Email:        user.Email,
 	})
 }
 
-func (r *repository) GetByID(ctx context.Context, id uint32) (*models.User, error) {
+func (r *repository) FindUserByID(ctx context.Context, id uint32) (*models.User, error) {
 
 	if id == 0 {
 		r.logger.Error("id is required")
 		return nil, errors.New("id is required")
 	}
 
-	sqlcUser, err := r.queries.GetUserByID(ctx, id)
+	sqlcUser, err := r.queries.FindUserByID(ctx, id)
 	if err != nil {
 		r.logger.Error("failed to get user by id", zap.Error(err))
 		return nil, err
 	}
 
 	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.ID = int(id)
+	user.ID = id
 
 	return user, nil
 }
 
-func (r *repository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+func (r *repository) FindUserByUsername(ctx context.Context, username string) (*models.User, error) {
 
 	if username == "" {
 		r.logger.Error("username is required")
 		return nil, errors.New("username is required")
 	}
 
-	sqlcUser, err := r.queries.GetUserByUsername(ctx, username)
+	sqlcUser, err := r.queries.FindUserByUsername(ctx, username)
 	if err != nil {
 		r.logger.Error("failed to get user by username", zap.Error(err))
 		return nil, err
@@ -83,14 +84,14 @@ func (r *repository) GetByUsername(ctx context.Context, username string) (*model
 	return user, nil
 }
 
-func (r *repository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *repository) FindUserByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	if email == "" {
 		r.logger.Error("email is required")
 		return nil, errors.New("email is required")
 	}
 
-	sqlcUser, err := r.queries.GetUserByEmail(ctx, email)
+	sqlcUser, err := r.queries.FindUserByEmail(ctx, email)
 	if err != nil {
 		r.logger.Error("failed to get user by username", zap.Error(err))
 		return nil, err
@@ -101,6 +102,25 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*models.User
 
 	return user, nil
 
+}
+
+func (r *repository) FindUserByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error) {
+
+	if firebaseUID == "" {
+		r.logger.Error("firebaseUID is required")
+		return nil, errors.New("firebaseUID is required")
+	}
+
+	sqlcUser, err := r.queries.FindUserByFirebaseUID(ctx, &firebaseUID)
+	if err != nil {
+		r.logger.Error("failed to get user by firebaseUID", zap.Error(err))
+		return nil, err
+	}
+
+	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
+	user.FirebaseUID = firebaseUID
+
+	return user, nil
 }
 
 func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {
@@ -144,7 +164,7 @@ func (r *repository) RemoveRoleFromUser(ctx context.Context, userID, roleID uint
 	})
 }
 
-func (r *repository) GetUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
+func (r *repository) FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
 
 	if userID == 0 {
 		r.logger.Error("userID is required")

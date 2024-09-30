@@ -68,6 +68,59 @@ func (e ActionType) Valid() bool {
 	return false
 }
 
+type ProviderType string
+
+const (
+	ProviderTypeEmail  ProviderType = "email"
+	ProviderTypeGoogle ProviderType = "google"
+	ProviderTypeApple  ProviderType = "apple"
+)
+
+func (e *ProviderType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProviderType(s)
+	case string:
+		*e = ProviderType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProviderType: %T", src)
+	}
+	return nil
+}
+
+type NullProviderType struct {
+	ProviderType ProviderType `json:"providerType"`
+	Valid        bool         `json:"valid"` // Valid is true if ProviderType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProviderType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProviderType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProviderType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProviderType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProviderType), nil
+}
+
+func (e ProviderType) Valid() bool {
+	switch e {
+	case ProviderTypeEmail,
+		ProviderTypeGoogle,
+		ProviderTypeApple:
+		return true
+	}
+	return false
+}
+
 type ResourceType string
 
 const (
@@ -151,8 +204,13 @@ type RolePermission struct {
 type User struct {
 	ID           uint32             `json:"id"`
 	Username     string             `json:"username"`
-	PasswordHash string             `json:"passwordHash"`
+	PasswordHash *string            `json:"passwordHash"`
 	Email        string             `json:"email"`
+	Phone        string             `json:"phone"`
+	FirebaseUid  *string            `json:"firebaseUid"`
+	Provider     ProviderType       `json:"provider"`
+	DisplayName  *string            `json:"displayName"`
+	PhotoUrl     *string            `json:"photoUrl"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
