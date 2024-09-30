@@ -13,7 +13,9 @@ import (
 
 var _ Service = (*service)(nil)
 
+// Service is the interface for the authorization service.
 type Service interface {
+	// LoadPolicies loads all policies.
 	LoadPolicies(ctx context.Context) error
 }
 

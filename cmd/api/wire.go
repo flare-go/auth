@@ -23,7 +23,6 @@ func InitializeAuthService() (*server.Server, error) {
 		config.NewLogger,
 		config.ProvidePostgresConn,
 		config.ProvideEnforcer,
-		firebase.NewFirebaseClient,
 		user.NewRepository,
 		role.NewRepository,
 		firebase.NewService,

@@ -7,195 +7,178 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
+
 	"goflare.io/auth/driver"
 	"goflare.io/auth/models"
 	"goflare.io/auth/sqlc"
 )
 
+// Repository defines the contract for the user repository.
 type Repository interface {
+
+	// CreateUser creates a new user.
 	CreateUser(ctx context.Context, user *models.User) (uint32, error)
+
+	// FindUserByID finds a user by its ID.
 	FindUserByID(ctx context.Context, id uint32) (*models.User, error)
+
+	// FindUserByUsername finds a user by its username.
 	FindUserByUsername(ctx context.Context, username string) (*models.User, error)
+
+	// FindUserByEmail finds a user by its email.
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
+
+	// FindUserByFirebaseUID retrieves a user based on their Firebase UID from the database.
 	FindUserByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error)
+
+	// AssignRoleToUserWithTx assigns a role to a user.
 	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
-	RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error
+
+	// FindUserRoles retrieves a user's roles.
 	FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
+
+	// ListAllUsers lists all users.
 	ListAllUsers(ctx context.Context) ([]*models.User, error)
 }
 
 type repository struct {
-	db      driver.PostgresPool
-	queries sqlc.Querier
-	logger  *zap.Logger
+	conn   driver.PostgresPool
+	logger *zap.Logger
 }
 
 func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 	return &repository{
-		db:      conn,
-		queries: sqlc.New(conn),
-		logger:  logger,
+		conn:   conn,
+		logger: logger,
 	}
 }
 
+// CreateUser creates a new user.
 func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint32, error) {
-	return r.queries.CreateUser(ctx, sqlc.CreateUserParams{
+	return sqlc.New(r.conn).CreateUser(ctx, sqlc.CreateUserParams{
 		Username:     user.Username,
 		PasswordHash: &user.PasswordHash,
 		Email:        user.Email,
 	})
 }
 
+// FindUserByID finds a user by its ID.
 func (r *repository) FindUserByID(ctx context.Context, id uint32) (*models.User, error) {
-
 	if id == 0 {
-		r.logger.Error("id is required")
 		return nil, errors.New("id is required")
 	}
 
-	sqlcUser, err := r.queries.FindUserByID(ctx, id)
+	sqlcUser, err := sqlc.New(r.conn).FindUserByID(ctx, id)
 	if err != nil {
-		r.logger.Error("failed to get user by id", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
-	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.ID = id
-
-	return user, nil
+	return new(models.User).ConvertFromSQLCUser(sqlcUser), nil
 }
 
+// FindUserByUsername finds a user by their username.
+// Returns a user model or an error if the user is not found or an error occurs.
 func (r *repository) FindUserByUsername(ctx context.Context, username string) (*models.User, error) {
-
 	if username == "" {
-		r.logger.Error("username is required")
 		return nil, errors.New("username is required")
 	}
 
-	sqlcUser, err := r.queries.FindUserByUsername(ctx, username)
+	sqlcUser, err := sqlc.New(r.conn).FindUserByUsername(ctx, username)
 	if err != nil {
-		r.logger.Error("failed to get user by username", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
 	}
 
-	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.Username = username
-
-	return user, nil
+	return new(models.User).ConvertFromSQLCUser(sqlcUser), nil
 }
 
+// FindUserByEmail finds a user by their email.
+// Returns a user model or an error if the user is not found or an error occurs.
 func (r *repository) FindUserByEmail(ctx context.Context, email string) (*models.User, error) {
-
 	if email == "" {
-		r.logger.Error("email is required")
 		return nil, errors.New("email is required")
 	}
 
-	sqlcUser, err := r.queries.FindUserByEmail(ctx, email)
+	sqlcUser, err := sqlc.New(r.conn).FindUserByEmail(ctx, email)
 	if err != nil {
-		r.logger.Error("failed to get user by username", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
-	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.Email = email
-
-	return user, nil
-
+	return new(models.User).ConvertFromSQLCUser(sqlcUser), nil
 }
 
+// FindUserByFirebaseUID retrieves a user based on their Firebase UID from the database.
 func (r *repository) FindUserByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error) {
-
 	if firebaseUID == "" {
-		r.logger.Error("firebaseUID is required")
 		return nil, errors.New("firebaseUID is required")
 	}
 
-	sqlcUser, err := r.queries.FindUserByFirebaseUID(ctx, &firebaseUID)
+	sqlcUser, err := sqlc.New(r.conn).FindUserByFirebaseUID(ctx, &firebaseUID)
 	if err != nil {
-		r.logger.Error("failed to get user by firebaseUID", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user by firebaseUID: %w", err)
 	}
 
-	user := models.NewUser().ConvertFromSQLCUser(sqlcUser)
-	user.FirebaseUID = firebaseUID
-
-	return user, nil
+	return new(models.User).ConvertFromSQLCUser(sqlcUser), nil
 }
 
+// AssignRoleToUserWithTx assigns a role to a user.
 func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {
-
-	dbTx, err := r.db.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel: pgx.RepeatableRead,
-	})
+	tx, err := r.conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-
 	defer func() {
-		if p := recover(); p != nil {
-			if err = dbTx.Rollback(ctx); err != nil {
-				err = fmt.Errorf("rollback failed: %v, original error: %v", err, err)
+		if err != nil {
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				r.logger.Error("failed to rollback transaction", zap.Error(rbErr))
 			}
-			panic(p) // re-throw panic after Rollback
-		} else if err != nil {
-			rbErr := dbTx.Rollback(ctx)
-			if rbErr != nil {
-				err = fmt.Errorf("rollback failed: %v, original error: %w", rbErr, err)
-			}
-		} else {
-			err = dbTx.Commit(ctx)
 		}
 	}()
 
-	queries := sqlc.New(r.db).WithTx(dbTx)
-
-	return queries.AssignRoleToUser(ctx, sqlc.AssignRoleToUserParams{
+	queries := sqlc.New(r.conn).WithTx(tx)
+	err = queries.AssignRoleToUser(ctx, sqlc.AssignRoleToUserParams{
 		UserID: userID,
 		RoleID: roleID,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to assign role to user: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
-func (r *repository) RemoveRoleFromUser(ctx context.Context, userID, roleID uint32) error {
-
-	return r.queries.RemoveRoleFromUser(ctx, sqlc.RemoveRoleFromUserParams{
-		UserID: userID,
-		RoleID: roleID,
-	})
-}
-
+// FindUserRoles retrieves a user's roles.
 func (r *repository) FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
-
 	if userID == 0 {
-		r.logger.Error("userID is required")
 		return nil, errors.New("userID is required")
 	}
 
-	sqlcRoles, err := r.queries.GetUserRoles(ctx, userID)
+	sqlcRoles, err := sqlc.New(r.conn).GetUserRoles(ctx, userID)
 	if err != nil {
-		r.logger.Error("failed to get user's roles", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get user's roles: %w", err)
 	}
 
-	roles := make([]*models.Role, 0, len(sqlcRoles))
-	for _, role := range sqlcRoles {
-		roles = append(roles, models.NewRole().ConvertFromSQLCRole(role))
+	roles := make([]*models.Role, len(sqlcRoles))
+	for i, role := range sqlcRoles {
+		roles[i] = new(models.Role).ConvertFromSQLCRole(role)
 	}
 
 	return roles, nil
 }
 
+// ListAllUsers lists all users.
 func (r *repository) ListAllUsers(ctx context.Context) ([]*models.User, error) {
-
-	sqlcUsers, err := r.queries.ListUsers(ctx)
+	sqlcUsers, err := sqlc.New(r.conn).ListUsers(ctx)
 	if err != nil {
-		r.logger.Error("failed to list users", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	users := make([]*models.User, 0, len(sqlcUsers))
-	for _, user := range sqlcUsers {
-		users = append(users, models.NewUser().ConvertFromSQLCUser(user))
+	users := make([]*models.User, len(sqlcUsers))
+	for i, user := range sqlcUsers {
+		users[i] = new(models.User).ConvertFromSQLCUser(user)
 	}
 
 	return users, nil

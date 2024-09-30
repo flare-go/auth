@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// ProvideEnforcer provides a new enforcer.
 func ProvideEnforcer(appConfig *Config, logger *zap.Logger) (*casbin.Enforcer, error) {
 
 	m, err := model.NewModelFromFile("./casbin.conf")

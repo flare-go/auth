@@ -1,11 +1,13 @@
 package models
 
 import (
+	"time"
+
 	"goflare.io/auth/models/enum"
 	"goflare.io/auth/sqlc"
-	"time"
 )
 
+// Permission is the permission for the resource and action.
 type Permission struct {
 	ID          uint32            `json:"id"`
 	Name        string            `json:"name"`
@@ -16,11 +18,13 @@ type Permission struct {
 	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
+// NewPermission creates a new Permission.
 func NewPermission() *Permission {
 
 	return &Permission{}
 }
 
+// ConvertFromSQLCPermission converts a SQLC permission to a Permission.
 func (p *Permission) ConvertFromSQLCPermission(sqlcPermission any) *Permission {
 
 	var name, description string

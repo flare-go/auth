@@ -53,7 +53,7 @@ func (r *repository) FindRoleByID(ctx context.Context, id uint32) (*models.Role,
 		return nil, errors.New("error getting role")
 	}
 
-	return models.NewRole().ConvertFromSQLCRole(sqlcRole), err
+	return new(models.Role).ConvertFromSQLCRole(sqlcRole), err
 }
 
 func (r *repository) DeleteRole(ctx context.Context, roleID uint32) error {
@@ -109,7 +109,7 @@ func (r *repository) ListAllRoles(ctx context.Context) ([]*models.Role, error) {
 
 	roles := make([]*models.Role, 0, len(sqlcRoles))
 	for _, sqlcRole := range sqlcRoles {
-		roles = append(roles, models.NewRole().ConvertFromSQLCRole(sqlcRole))
+		roles = append(roles, new(models.Role).ConvertFromSQLCRole(sqlcRole))
 	}
 
 	return roles, nil

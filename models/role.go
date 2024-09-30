@@ -1,22 +1,30 @@
 package models
 
 import (
-	"goflare.io/auth/sqlc"
 	"time"
+
+	"goflare.io/auth/sqlc"
 )
 
+// Role is the role for the user.
 type Role struct {
-	ID          uint32    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	// ID is the ID of the role.
+	ID uint32 `json:"id"`
+
+	// Name is the name of the role.
+	Name string `json:"name"`
+
+	// Description is the description of the role.
+	Description string `json:"description"`
+
+	// CreatedAt is the created at time.
+	CreatedAt time.Time `json:"created_at"`
+
+	// UpdatedAt is the updated at time.
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func NewRole() *Role {
-	return &Role{}
-}
-
+// ConvertFromSQLCRole converts a SQLC role to a Role.
 func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
 
 	var id uint32

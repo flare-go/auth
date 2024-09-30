@@ -19,11 +19,17 @@ import (
 
 var _ Service = (*service)(nil)
 
+// Service is the interface for the authentication service.
 type Service interface {
+	// Login logs in a user with email and password.
 	Login(ctx context.Context, email, password string) (*models.PASETOToken, error)
+	// Logout logs out a user with a token.
 	Logout(ctx context.Context, token string) error
+	// Register registers a new user with username, password, email, and phone.
 	Register(ctx context.Context, username, password, email, phone string) (*models.PASETOToken, error)
+	// ValidateToken validates a token.
 	ValidateToken(token string) (uint32, error)
+	// CheckPermission checks if a user has a permission for a resource and action.
 	CheckPermission(ctx context.Context, userID uint32, resource enum.ResourceType, action enum.ActionType) (bool, error)
 }
 

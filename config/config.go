@@ -18,21 +18,35 @@ const (
 	Environment     = "environment"
 )
 
+// Config is the application config.
 type Config struct {
 	Postgres PostgresConfig
 	Paseto   PasetoConfig
+	Firebase FirebaseConfig
 }
 
+// PostgresConfig is the Postgres config.
 type PostgresConfig struct {
 	URL string `yaml:"url"`
 }
 
+// PasetoConfig is the Paseto config.
 type PasetoConfig struct {
 	PublicSecretKey     string `yaml:"public_secret_key"`
 	PrivateSecretKey    string `yaml:"private_secret_key"`
 	TokenExpirationTime time.Duration
 }
 
+// FirebaseConfig is the Firebase config.
+type FirebaseConfig struct {
+	ServiceAccountFilePath string
+	ProjectID              string
+	ClientID               string
+	ClientSecret           string
+	RedirectURL            string
+}
+
+// ProvideApplicationConfig provides the application config.
 func ProvideApplicationConfig() (*Config, error) {
 	data, err := os.ReadFile("./config.yaml")
 	if err != nil {
@@ -57,9 +71,17 @@ func ProvideApplicationConfig() (*Config, error) {
 
 	config.Paseto.TokenExpirationTime = 120 * time.Minute
 
+	// 讀取 Firebase 配置
+	config.Firebase.ServiceAccountFilePath = os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
+	config.Firebase.ProjectID = os.Getenv("FIREBASE_PROJECT_ID")
+	config.Firebase.ClientID = os.Getenv("FIREBASE_CLIENT_ID")
+	config.Firebase.ClientSecret = os.Getenv("FIREBASE_CLIENT_SECRET")
+	config.Firebase.RedirectURL = os.Getenv("FIREBASE_REDIRECT_URL")
+
 	return &config, nil
 }
 
+// ProvidePostgresConn provides a new Postgres connection.
 func ProvidePostgresConn(appConfig *Config) (driver.PostgresPool, error) {
 	conn, err := driver.ConnectSQL(appConfig.Postgres.URL)
 	if err != nil {
@@ -69,6 +91,7 @@ func ProvidePostgresConn(appConfig *Config) (driver.PostgresPool, error) {
 	return conn.Pool, nil
 }
 
+// NewLogger creates a new logger.
 func NewLogger() *zap.Logger {
 
 	logger, _ := zap.NewProduction()

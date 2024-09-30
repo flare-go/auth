@@ -21,7 +21,7 @@ type Server struct {
 	server         *http.Server
 	authentication authentication.Service
 	authorization  authorization.Service
-	user           handler.UserHandler
+	user           *handler.UserHandler
 	middleware     *middleware.AuthenticationMiddleware
 	logger         *zap.Logger
 }
@@ -29,7 +29,7 @@ type Server struct {
 // NewServer creates a new server
 func NewServer(
 	middleware *middleware.AuthenticationMiddleware,
-	user handler.UserHandler,
+	user *handler.UserHandler,
 	authentication authentication.Service,
 	authorization authorization.Service,
 	logger *zap.Logger,
@@ -80,5 +80,9 @@ func (s *Server) Run(address string) error {
 func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/login", s.user.Login)
 	s.mux.HandleFunc("/register", s.user.Register)
+	s.mux.HandleFunc("/firebase/login", s.user.FirebaseLogin)
+	s.mux.HandleFunc("/firebase/register", s.user.RegisterWithFirebase)
+	s.mux.HandleFunc("/oauth/login", s.user.OAuthLogin)
+	s.mux.HandleFunc("/oauth/callback", s.user.OAuthCallback)
 	s.mux.HandleFunc("/check", s.middleware.AuthorizeUser(s.user.CheckPermission))
 }

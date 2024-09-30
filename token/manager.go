@@ -12,8 +12,14 @@ import (
 
 // Manager defines methods for token management.
 type Manager interface {
+
+	// GenerateToken generates a new token.
 	GenerateToken(userID uint32) (*models.PASETOToken, error)
+
+	// ValidateToken validates a token.
 	ValidateToken(token string) (uint32, error)
+
+	// RevokeToken revokes a token.
 	RevokeToken(token string) error
 }
 
