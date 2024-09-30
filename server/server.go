@@ -2,60 +2,68 @@ package server
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"go.uber.org/zap"
 	"goflare.io/auth/authentication"
 	"goflare.io/auth/authorization"
 	"goflare.io/auth/handler"
-	authMiddleware "goflare.io/auth/middleware"
+	"goflare.io/auth/middleware"
 )
 
+// Server represents the server
 type Server struct {
-	echo           *echo.Echo
-	Authentication authentication.Service
-	Authorization  authorization.Service
-	User           handler.UserHandler
-	Middleware     *authMiddleware.AuthenticationMiddleware
+	mux            *http.ServeMux
+	server         *http.Server
+	authentication authentication.Service
+	authorization  authorization.Service
+	user           handler.UserHandler
+	middleware     *middleware.AuthenticationMiddleware
+	logger         *zap.Logger
 }
 
+// NewServer creates a new server
 func NewServer(
-	middleware *authMiddleware.AuthenticationMiddleware,
-	User handler.UserHandler,
-	Authentication authentication.Service,
-	Authorization authorization.Service,
+	middleware *middleware.AuthenticationMiddleware,
+	user handler.UserHandler,
+	authentication authentication.Service,
+	authorization authorization.Service,
+	logger *zap.Logger,
 ) *Server {
+	mux := http.NewServeMux()
 	return &Server{
-		echo:           echo.New(),
-		Authentication: Authentication,
-		Authorization:  Authorization,
-		Middleware:     middleware,
-		User:           User,
+		mux:            mux,
+		authentication: authentication,
+		authorization:  authorization,
+		middleware:     middleware,
+		user:           user,
+		logger:         logger,
 	}
 }
 
-// Start initializes the server by registering middlewares and routes, and starts listening for connections on the provided address.
-// It returns an error if there is an issue starting the server.
+// Start starts the server
 func (s *Server) Start(address string) error {
-	s.registerMiddlewares()
 	s.registerRoutes()
-	return s.echo.Start(address)
+	s.server = &http.Server{
+		Addr:    address,
+		Handler: s.mux,
+	}
+	return s.server.ListenAndServe()
 }
 
-// Run starts the server by calling the Start method in a goroutine. If an error occurs, it
-// logs the error and terminates the server. It then listens for an OS interrupt signal or a SIGTERM
-// signal to gracefully shut down the server. Once the signal is received, it creates a context with
-// a timeout of 5 seconds, cancels the context after the method returns, and returns the result of
-// shutting down the server.
 func (s *Server) Run(address string) error {
-
 	go func() {
-		if err := s.Start(address); err != nil {
-			s.echo.Logger.Fatal(err)
+		// Load policies
+		if err := s.authorization.LoadPolicies(context.Background()); err != nil {
+			s.logger.Fatal("Failed to load policies", zap.Error(err))
+		}
+		s.logger.Info("Starting server on " + address)
+		if err := s.Start(address); err != nil && err != http.ErrServerClosed {
+			panic(err)
 		}
 	}()
 
@@ -66,17 +74,11 @@ func (s *Server) Run(address string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	return s.echo.Shutdown(ctx)
-}
-
-func (s *Server) registerMiddlewares() {
-	s.echo.Use(middleware.Recover())
+	return s.server.Shutdown(ctx)
 }
 
 func (s *Server) registerRoutes() {
-
-	s.echo.POST("/login", s.User.Login)
-	s.echo.POST("/register", s.User.Register)
-
-	s.echo.POST("/check", s.User.CheckPermission, s.Middleware.AuthorizeUser)
+	s.mux.HandleFunc("/login", s.user.Login)
+	s.mux.HandleFunc("/register", s.user.Register)
+	s.mux.HandleFunc("/check", s.middleware.AuthorizeUser(s.user.CheckPermission))
 }

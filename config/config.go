@@ -2,12 +2,12 @@ package config
 
 import (
 	"fmt"
-	"strings"
+	"os"
 	"time"
 
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"goflare.io/auth/driver"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -24,30 +24,35 @@ type Config struct {
 }
 
 type PostgresConfig struct {
-	URL string `mapstructure:"url"`
+	URL string `yaml:"url"`
 }
 
 type PasetoConfig struct {
-	PublicSecretKey     string `mapstructure:"public_secret_key"`
-	PrivateSecretKey    string `mapstructure:"private_secret_key"`
+	PublicSecretKey     string `yaml:"public_secret_key"`
+	PrivateSecretKey    string `yaml:"private_secret_key"`
 	TokenExpirationTime time.Duration
 }
 
 func ProvideApplicationConfig() (*Config, error) {
-
-	viper.SetConfigFile("./config.yaml")
-	viper.SetConfigType("yaml")
-
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	if err := viper.ReadInConfig(); err != nil {
+	data, err := os.ReadFile("./config.yaml")
+	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
+	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// 環境變量覆蓋
+	if url := os.Getenv("POSTGRES_URL"); url != "" {
+		config.Postgres.URL = url
+	}
+	if pubKey := os.Getenv("PASETO_PUBLIC_SECRET_KEY"); pubKey != "" {
+		config.Paseto.PublicSecretKey = pubKey
+	}
+	if privKey := os.Getenv("PASETO_PRIVATE_SECRET_KEY"); privKey != "" {
+		config.Paseto.PrivateSecretKey = privKey
 	}
 
 	config.Paseto.TokenExpirationTime = 120 * time.Minute
@@ -56,7 +61,6 @@ func ProvideApplicationConfig() (*Config, error) {
 }
 
 func ProvidePostgresConn(appConfig *Config) (driver.PostgresPool, error) {
-
 	conn, err := driver.ConnectSQL(appConfig.Postgres.URL)
 	if err != nil {
 		return nil, err

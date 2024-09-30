@@ -45,6 +45,6 @@ func InitializeAuthService() (*server.Server, error) {
 	userHandler := handler.NewUserHandler(service, firebaseService)
 	roleRepository := role.NewRepository(postgresPool, logger)
 	authorizationService := authorization.NewService(repository, roleRepository, enforcer, logger)
-	serverServer := server.NewServer(authenticationMiddleware, userHandler, service, authorizationService)
+	serverServer := server.NewServer(authenticationMiddleware, userHandler, service, authorizationService, logger)
 	return serverServer, nil
 }

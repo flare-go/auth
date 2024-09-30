@@ -1,18 +1,12 @@
 package main
 
 import (
-	"context"
 	"log"
 )
 
 func main() {
 	server, err := InitializeAuthService()
 	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	if err = server.Authorization.LoadPolicies(context.Background()); err != nil {
 		log.Fatal(err)
 		return
 	}

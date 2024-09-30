@@ -1,18 +1,18 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"goflare.io/auth/authentication"
 	"goflare.io/auth/firebase"
 	"goflare.io/auth/models/enum"
 )
 
 type UserHandler interface {
-	Login(c echo.Context) error
-	Register(c echo.Context) error
-	CheckPermission(c echo.Context) error
+	Login(w http.ResponseWriter, r *http.Request)
+	Register(w http.ResponseWriter, r *http.Request)
+	CheckPermission(w http.ResponseWriter, r *http.Request)
 }
 
 type userHandler struct {
@@ -30,79 +30,60 @@ func NewUserHandler(
 	}
 }
 
-type OAuthLoginRequest struct {
-	Provider string `json:"provider" validate:"required,oneof=google apple"`
-	IDToken  string `json:"id_token" validate:"required"`
-}
-
-func (uh *userHandler) Login(c echo.Context) error {
-
+func (uh *userHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	paseto, err := uh.authentication.Login(c.Request().Context(), req.Email, req.Password)
+	paseto, err := uh.authentication.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return c.JSON(http.StatusOK, paseto)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(paseto)
 }
 
-func (uh *userHandler) Register(c echo.Context) error {
-
+func (uh *userHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	if req.Email == "" || req.Password == "" || req.Username == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email or password is empty")
+		http.Error(w, "email or password is empty", http.StatusBadRequest)
+		return
 	}
 
-	paseto, err := uh.authentication.Register(c.Request().Context(), req.Username, req.Password, req.Email, req.Phone)
+	paseto, err := uh.authentication.Register(r.Context(), req.Username, req.Password, req.Email, req.Phone)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return c.JSON(http.StatusOK, paseto)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(paseto)
 }
 
-func (uh *userHandler) CheckPermission(c echo.Context) error {
-
+func (uh *userHandler) CheckPermission(w http.ResponseWriter, r *http.Request) {
 	var req CheckPermissionRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	userID := c.Get("user_id").(uint32)
+	userID := r.Context().Value("user_id").(uint32)
 
-	ok, err := uh.authentication.CheckPermission(c.Request().Context(), userID, enum.ResourceType(req.Resource), enum.ActionType(req.Action))
+	ok, err := uh.authentication.CheckPermission(r.Context(), userID, enum.ResourceType(req.Resource), enum.ActionType(req.Action))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return c.JSON(http.StatusOK, ok)
-}
-
-func (uh *userHandler) OAuthLogin(c echo.Context) error {
-	var req OAuthLoginRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid request"})
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
-	}
-
-	token, err := uh.firebaseService.OauthLogin(c.Request().Context(), req.Provider, req.IDToken)
-	if err != nil {
-		return c.JSON(err.(*echo.HTTPError).Code, echo.Map{"error": err.(*echo.HTTPError).Message})
-	}
-
-	return c.JSON(http.StatusOK, echo.Map{
-		"message": "OAuth login successful",
-		"token":   token.Token,
-	})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ok)
 }
