@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// ProvideEnforcer provides a new Casbin enforcer.
 func ProvideEnforcer(appConfig *Config, logger *zap.Logger) (*casbin.Enforcer, error) {
 	m, err := model.NewModelFromFile("./casbin.conf")
 	if err != nil {
@@ -38,7 +39,9 @@ func ProvideEnforcer(appConfig *Config, logger *zap.Logger) (*casbin.Enforcer, e
 
 	// 設置 TLS 配置
 	tlsConfig := &tls.Config{
-		ServerName: hostname,
+		ServerName:         hostname,
+		MinVersion:         tls.VersionTLS12, // 添加這行
+		InsecureSkipVerify: false,            // 添加這行以確保驗證證書
 	}
 
 	switch appConfig.Postgres.SSLMode {
