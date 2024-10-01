@@ -53,6 +53,8 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 		Username     string
 		PasswordHash string
 		Email        string
+		FirebaseUID  string
+		Provider     string
 	}
 
 	var fields userFields
@@ -75,6 +77,8 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 			ID:           sp.ID,
 			Username:     sp.Username,
 			PasswordHash: sp.PasswordHash,
+			FirebaseUID:  *sp.FirebaseUid,
+			Provider:     string(sp.Provider),
 		}
 	case *sqlc.ListUsersRow:
 		fields = userFields{
@@ -97,6 +101,8 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	u.Username = fields.Username
 	u.Email = fields.Email
 	u.PasswordHash = fields.PasswordHash
+	u.FirebaseUID = fields.FirebaseUID
+	u.Provider = fields.Provider
 
 	return u
 }

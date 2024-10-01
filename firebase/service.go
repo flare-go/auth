@@ -57,6 +57,7 @@ func NewService(
 	config *config.Config,
 	logger *zap.Logger,
 ) (Service, error) {
+	logger.Info(config.Firebase.ServiceAccountFilePath)
 	opt := option.WithCredentialsFile(config.Firebase.ServiceAccountFilePath)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
@@ -122,6 +123,7 @@ func (s *service) Register(ctx context.Context, username, password, email, phone
 
 	firebaseUser, err := s.client.CreateUser(ctx, params)
 	if err != nil {
+		s.logger.Error("failed create user")
 		return nil, errors.Join(err, errors.New("failed to create Firebase user"))
 	}
 
@@ -130,15 +132,15 @@ func (s *service) Register(ctx context.Context, username, password, email, phone
 		return nil, errors.Join(err, errors.New("failed to hash password"))
 	}
 
+	s.logger.Info("firebaseUser", zap.Any("firebaseUser", firebaseUser))
+
 	user := &models.User{
 		Username:     username,
 		PasswordHash: string(hashedPassword),
 		Email:        email,
 		Phone:        phone,
 		FirebaseUID:  firebaseUser.UID,
-		Provider:     "email",
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Provider:     firebaseUser.ProviderID,
 	}
 
 	if _, err := s.userStore.CreateUser(ctx, user); err != nil {
@@ -193,8 +195,6 @@ func (s *service) OauthLogin(ctx context.Context, provider, idToken string) (*mo
 				Email:       firebaseUser.Email,
 				FirebaseUID: firebaseUser.UID,
 				Provider:    strings.ToLower(provider),
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
 			}
 			if _, err := s.userStore.CreateUser(ctx, user); err != nil {
 				s.logger.Error("Failed to create user", zap.Error(err))

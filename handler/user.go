@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -104,21 +105,21 @@ func (uh *UserHandler) CheckPermission(w http.ResponseWriter, r *http.Request) {
 
 // FirebaseLogin handles the Firebase login endpoint.
 func (uh *UserHandler) FirebaseLogin(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		IDToken  string `json:"id_token"`
-		Provider string `json:"provider"`
+
+	type req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		uh.logger.Error("Failed to decode request body", zap.Error(err))
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	var request req
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, errors.Join(err, errors.New("Failed to decode request body")).Error(), http.StatusBadRequest)
 		return
 	}
 
-	token, err := uh.firebaseService.Login(r.Context(), req.IDToken, req.Provider)
+	token, err := uh.firebaseService.Login(r.Context(), request.Email, request.Password)
 	if err != nil {
-		uh.logger.Error("Failed to login with Firebase", zap.Error(err))
-		http.Error(w, "Firebase login failed", http.StatusUnauthorized)
+		http.Error(w, errors.Join(err, errors.New("Firebase login failed")).Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -138,15 +139,13 @@ func (uh *UserHandler) RegisterWithFirebase(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		uh.logger.Error("Failed to decode request body", zap.Error(err))
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, errors.Join(err, errors.New("Failed to decode request body")).Error(), http.StatusBadRequest)
 		return
 	}
 
 	token, err := uh.firebaseService.Register(r.Context(), req.Username, req.Password, req.Email, req.Phone)
 	if err != nil {
-		uh.logger.Error("Failed to register with Firebase", zap.Error(err))
-		http.Error(w, "Firebase registration failed", http.StatusInternalServerError)
+		http.Error(w, errors.Join(err, errors.New("Firebase registration failed")).Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -163,15 +162,13 @@ func (uh *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		uh.logger.Error("Failed to decode request body", zap.Error(err))
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, errors.Join(err, errors.New("Failed to decode request body")).Error(), http.StatusBadRequest)
 		return
 	}
 
 	authURL, err := uh.firebaseService.GetOAuthURL(req.Provider)
 	if err != nil {
-		uh.logger.Error("Failed to get OAuth URL", zap.Error(err))
-		http.Error(w, "Failed to initiate OAuth flow", http.StatusInternalServerError)
+		http.Error(w, errors.Join(err, errors.New("Failed to get OAuth URL")).Error(), http.StatusInternalServerError)
 		return
 	}
 

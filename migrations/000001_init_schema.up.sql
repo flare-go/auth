@@ -1,4 +1,4 @@
-CREATE TYPE provider_type AS ENUM ('email', 'google', 'apple');
+CREATE TYPE provider_type AS ENUM ('email', 'google', 'apple', 'firebase', 'github', 'twitter', 'linkedin', 'microsoft', 'gitlab', 'bitbucket', 'keycloak', 'oidc', 'oauth', 'custom');
 
 CREATE TYPE action_type AS ENUM ('CREATE', 'READ', 'UPDATE', 'DELETE', 'LIST');
 

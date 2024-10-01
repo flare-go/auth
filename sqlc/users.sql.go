@@ -12,19 +12,27 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, password_hash, email)
-VALUES ($1, $2, $3)
+INSERT INTO users (username, password_hash, email, firebase_uid, provider, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 RETURNING id
 `
 
 type CreateUserParams struct {
-	Username     string `json:"username"`
-	PasswordHash string `json:"passwordHash"`
-	Email        string `json:"email"`
+	Username     string       `json:"username"`
+	PasswordHash string       `json:"passwordHash"`
+	Email        string       `json:"email"`
+	FirebaseUid  *string      `json:"firebaseUid"`
+	Provider     ProviderType `json:"provider"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint64, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.PasswordHash, arg.Email)
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Username,
+		arg.PasswordHash,
+		arg.Email,
+		arg.FirebaseUid,
+		arg.Provider,
+	)
 	var id uint64
 	err := row.Scan(&id)
 	return id, err
@@ -40,13 +48,15 @@ func (q *Queries) DeleteUser(ctx context.Context, id uint64) error {
 }
 
 const findUserByEmail = `-- name: FindUserByEmail :one
-SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE email = $1
+SELECT id, password_hash, username, firebase_uid, provider, created_at, updated_at  FROM users WHERE email = $1
 `
 
 type FindUserByEmailRow struct {
 	ID           uint64             `json:"id"`
 	PasswordHash string             `json:"passwordHash"`
 	Username     string             `json:"username"`
+	FirebaseUid  *string            `json:"firebaseUid"`
+	Provider     ProviderType       `json:"provider"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
@@ -58,6 +68,8 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (*FindUserB
 		&i.ID,
 		&i.PasswordHash,
 		&i.Username,
+		&i.FirebaseUid,
+		&i.Provider,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

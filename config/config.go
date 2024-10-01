@@ -29,7 +29,7 @@ const Environment = "environment"
 type Config struct {
 	Postgres driver.PostgresConfig
 	Paseto   PasetoConfig
-	Firebase FirebaseConfig
+	Firebase FirebaseConfig `yaml:"firebase"`
 }
 
 // PasetoConfig is the Paseto config.
@@ -41,7 +41,7 @@ type PasetoConfig struct {
 
 // FirebaseConfig is the Firebase config.
 type FirebaseConfig struct {
-	ServiceAccountFilePath string
+	ServiceAccountFilePath string `yaml:"service_account_file_path"`
 	ProjectID              string
 	ClientID               string
 	ClientSecret           string
@@ -81,13 +81,6 @@ func ProvideApplicationConfig() (*Config, error) {
 	}
 
 	config.Paseto.TokenExpirationTime = 120 * time.Minute
-
-	// 讀取 Firebase 配置
-	config.Firebase.ServiceAccountFilePath = os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE")
-	config.Firebase.ProjectID = os.Getenv("FIREBASE_PROJECT_ID")
-	config.Firebase.ClientID = os.Getenv("FIREBASE_CLIENT_ID")
-	config.Firebase.ClientSecret = os.Getenv("FIREBASE_CLIENT_SECRET")
-	config.Firebase.RedirectURL = os.Getenv("FIREBASE_REDIRECT_URL")
 
 	return &config, nil
 }

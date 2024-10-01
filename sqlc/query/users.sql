@@ -1,6 +1,6 @@
 -- name: CreateUser :one
-INSERT INTO users (username, password_hash, email)
-VALUES ($1, $2, $3)
+INSERT INTO users (username, password_hash, email, firebase_uid, provider, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 RETURNING id;
 
 -- name: FindUserByID :one
@@ -10,7 +10,7 @@ SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE 
 SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE username = $1;
 
 -- name: FindUserByEmail :one
-SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE email = $1;
+SELECT id, password_hash, username, firebase_uid, provider, created_at, updated_at  FROM users WHERE email = $1;
 
 -- name: FindUserByFirebaseUID :one
 SELECT id, password_hash, username, email, created_at, updated_at  FROM users WHERE firebase_uid = $1;

@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 
 	pgadapter "github.com/casbin/casbin-pg-adapter"
 	"github.com/casbin/casbin/v2"
@@ -56,7 +56,7 @@ func ProvideEnforcer(appConfig *Config, logger *zap.Logger) (*casbin.Enforcer, e
 			return nil, fmt.Errorf("無法獲取系統證書池: %w", err)
 		}
 		if appConfig.Postgres.SSLRootCert != "" {
-			cert, err := ioutil.ReadFile(appConfig.Postgres.SSLRootCert)
+			cert, err := os.ReadFile(appConfig.Postgres.SSLRootCert)
 			if err != nil {
 				logger.Error("無法讀取 SSL 根證書", zap.Error(err))
 				return nil, fmt.Errorf("無法讀取 SSL 根證書: %w", err)

@@ -71,9 +71,20 @@ func (e ActionType) Valid() bool {
 type ProviderType string
 
 const (
-	ProviderTypeEmail  ProviderType = "email"
-	ProviderTypeGoogle ProviderType = "google"
-	ProviderTypeApple  ProviderType = "apple"
+	ProviderTypeEmail     ProviderType = "email"
+	ProviderTypeGoogle    ProviderType = "google"
+	ProviderTypeApple     ProviderType = "apple"
+	ProviderTypeFirebase  ProviderType = "firebase"
+	ProviderTypeGithub    ProviderType = "github"
+	ProviderTypeTwitter   ProviderType = "twitter"
+	ProviderTypeLinkedin  ProviderType = "linkedin"
+	ProviderTypeMicrosoft ProviderType = "microsoft"
+	ProviderTypeGitlab    ProviderType = "gitlab"
+	ProviderTypeBitbucket ProviderType = "bitbucket"
+	ProviderTypeKeycloak  ProviderType = "keycloak"
+	ProviderTypeOidc      ProviderType = "oidc"
+	ProviderTypeOauth     ProviderType = "oauth"
+	ProviderTypeCustom    ProviderType = "custom"
 )
 
 func (e *ProviderType) Scan(src interface{}) error {
@@ -115,7 +126,18 @@ func (e ProviderType) Valid() bool {
 	switch e {
 	case ProviderTypeEmail,
 		ProviderTypeGoogle,
-		ProviderTypeApple:
+		ProviderTypeApple,
+		ProviderTypeFirebase,
+		ProviderTypeGithub,
+		ProviderTypeTwitter,
+		ProviderTypeLinkedin,
+		ProviderTypeMicrosoft,
+		ProviderTypeGitlab,
+		ProviderTypeBitbucket,
+		ProviderTypeKeycloak,
+		ProviderTypeOidc,
+		ProviderTypeOauth,
+		ProviderTypeCustom:
 		return true
 	}
 	return false

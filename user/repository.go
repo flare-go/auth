@@ -64,6 +64,8 @@ func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint64,
 		Username:     user.Username,
 		PasswordHash: user.PasswordHash,
 		Email:        user.Email,
+		FirebaseUid:  &user.FirebaseUID,
+		Provider:     sqlc.ProviderType(user.Provider),
 	})
 }
 
