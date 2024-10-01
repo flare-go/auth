@@ -9,7 +9,7 @@ import (
 
 // Permission is the permission for the resource and action.
 type Permission struct {
-	ID          uint32            `json:"id"`
+	ID          uint64            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Resource    enum.ResourceType `json:"resource"`

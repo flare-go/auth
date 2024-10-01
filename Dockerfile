@@ -1,57 +1,61 @@
-# Build stage
+# Start from the official Golang Alpine image as the builder stage
 FROM golang:1.23.0-alpine3.19 AS builder
 
-# Set the working directory
-WORKDIR /build
-
-# Set Go environment variables
-ENV GOPATH /go
-ENV GOCACHE /go-build
-
-# Install necessary build tools
-RUN apk update && apk add --no-cache git
-
-# Copy dependency files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code and configuration files
-COPY . .
-
-# Compile the application
-# -ldflags="-w -s" removes debugging information and symbol tables to reduce the size of the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -a -installsuffix cgo -o auth ./cmd/api
-
-# Final stage
-FROM alpine:3.19
-
-# Add metadata
-LABEL maintainer="Your Name <your.email@example.com>"
-LABEL version="1.0"
-LABEL description="Auth Service for GoFlare"
-
-# Set the working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy the binary and configuration files from the build stage
-COPY --from=builder /build/auth .
-COPY --from=builder /build/config.yaml .
-COPY --from=builder /build/firebase-service-account.json .
-COPY --from=builder /build/casbin.conf .
+# Install necessary tools: git for version control and upx for binary compression
+RUN apk add --no-cache git upx
 
-# Create a non-root user
-RUN adduser -D -g '' appuser
+# Set environment variables for Go build
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
 
-# Ensure the application user has permission to read the config files
-RUN chown -R appuser:appuser /app
+# Copy go mod files
+COPY go.mod go.sum ./
 
-# Switch to the non-root user
-USER appuser
+# Download dependencies using go mod
+# Use mount cache to speed up builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Specify the container start command
-CMD ["./auth"]
+# Copy the entire project
+COPY . .
 
-# Declare the port the container will use
-EXPOSE 50051
+# Build argument for version, default to 1.0
+ARG VERSION=1.0
+
+# Build the Go application
+# Use mount cache to speed up builds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -ldflags="-w -s -X main.Version=${VERSION}" \
+    -trimpath -o auth ./cmd/api
+
+# Compress the binary using UPX
+RUN upx --best --lzma auth
+
+# Start a new stage from scratch for a smaller final image
+FROM gcr.io/distroless/static-debian11
+
+# Add metadata to the image
+LABEL maintainer="Your Name <koopapapa@gmail.com>"
+LABEL version=${VERSION}
+LABEL description="Auth Service for GoFlare"
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the binary and necessary files from the builder stage
+COPY --from=builder /app/auth .
+COPY --from=builder /app/config.yaml .
+COPY --from=builder /app/firebase-service-account.json .
+COPY --from=builder /app/casbin.conf .
+COPY --from=builder /app/root.crt .
+
+# Expose port 8080
+EXPOSE 8080
+
+# Set the entrypoint to run the auth binary
+ENTRYPOINT ["/app/auth"]

@@ -14,10 +14,10 @@ import (
 type Manager interface {
 
 	// GenerateToken generates a new token.
-	GenerateToken(userID uint32) (*models.PASETOToken, error)
+	GenerateToken(userID uint64) (*models.PASETOToken, error)
 
 	// ValidateToken validates a token.
-	ValidateToken(token string) (uint32, error)
+	ValidateToken(token string) (uint64, error)
 
 	// RevokeToken revokes a token.
 	RevokeToken(token string) error
@@ -42,7 +42,7 @@ func NewPasetoManager(publicKey, privateKey string, expiration time.Duration) *P
 }
 
 // GenerateToken generates a new PASETO token.
-func (tm *PasetoManager) GenerateToken(userID uint32) (*models.PASETOToken, error) {
+func (tm *PasetoManager) GenerateToken(userID uint64) (*models.PASETOToken, error) {
 	now := time.Now()
 	exp := now.Add(tm.expiration)
 	token, err := paseto.NewV2().Sign(tm.privateKey, models.PASETOToken{
@@ -56,7 +56,7 @@ func (tm *PasetoManager) GenerateToken(userID uint32) (*models.PASETOToken, erro
 }
 
 // ValidateToken validates a PASETO token.
-func (tm *PasetoManager) ValidateToken(token string) (uint32, error) {
+func (tm *PasetoManager) ValidateToken(token string) (uint64, error) {
 	var tokenData models.PASETOToken
 	err := paseto.NewV2().Verify(token, tm.publicKey, &tokenData, nil)
 	if err != nil {

@@ -15,8 +15,8 @@ VALUES ($1, $2)
 `
 
 type AssignRoleToUserParams struct {
-	UserID uint32 `json:"userId"`
-	RoleID uint32 `json:"roleId"`
+	UserID uint64 `json:"userId"`
+	RoleID uint64 `json:"roleId"`
 }
 
 func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error {
@@ -31,7 +31,7 @@ FROM roles r
 WHERE ur.user_id = $1
 `
 
-func (q *Queries) GetUserRoles(ctx context.Context, userID uint32) ([]*Role, error) {
+func (q *Queries) GetUserRoles(ctx context.Context, userID uint64) ([]*Role, error) {
 	rows, err := q.db.Query(ctx, getUserRoles, userID)
 	if err != nil {
 		return nil, err
@@ -63,8 +63,8 @@ WHERE user_id = $1 AND role_id = $2
 `
 
 type RemoveRoleFromUserParams struct {
-	UserID uint32 `json:"userId"`
-	RoleID uint32 `json:"roleId"`
+	UserID uint64 `json:"userId"`
+	RoleID uint64 `json:"roleId"`
 }
 
 func (q *Queries) RemoveRoleFromUser(ctx context.Context, arg RemoveRoleFromUserParams) error {

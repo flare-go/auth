@@ -27,14 +27,9 @@ const Environment = "environment"
 
 // Config is the application config.
 type Config struct {
-	Postgres PostgresConfig
+	Postgres driver.PostgresConfig
 	Paseto   PasetoConfig
 	Firebase FirebaseConfig
-}
-
-// PostgresConfig is the Postgres config.
-type PostgresConfig struct {
-	URL string `yaml:"url"`
 }
 
 // PasetoConfig is the Paseto config.
@@ -69,6 +64,15 @@ func ProvideApplicationConfig() (*Config, error) {
 	if url := os.Getenv("POSTGRES_URL"); url != "" {
 		config.Postgres.URL = url
 	}
+	if sslMode := os.Getenv("POSTGRES_SSLMODE"); sslMode != "" {
+		config.Postgres.SSLMode = sslMode
+	}
+	if sslRootCert := os.Getenv("POSTGRES_SSLROOTCERT"); sslRootCert != "" {
+		config.Postgres.SSLRootCert = sslRootCert
+	}
+	if cluster := os.Getenv("POSTGRES_CLUSTER"); cluster != "" {
+		config.Postgres.Cluster = cluster
+	}
 	if pubKey := os.Getenv("PASETO_PUBLIC_SECRET_KEY"); pubKey != "" {
 		config.Paseto.PublicSecretKey = pubKey
 	}
@@ -90,7 +94,7 @@ func ProvideApplicationConfig() (*Config, error) {
 
 // ProvidePostgresConn provides a new Postgres connection.
 func ProvidePostgresConn(appConfig *Config) (driver.PostgresPool, error) {
-	conn, err := driver.ConnectSQL(appConfig.Postgres.URL)
+	conn, err := driver.ConnectSQL(appConfig.Postgres)
 	if err != nil {
 		return nil, err
 	}

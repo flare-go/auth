@@ -4,9 +4,9 @@ set -eo pipefail
 
 # Default values (can be overridden by environment variables)
 IMAGE_NAME="${IMAGE_NAME:-auth-service}"
-TAG="${TAG:-0.0.1}"
-PROJECT_ID="${PROJECT_ID:-valiant-realm-435619-g6}"
-REPOSITORY="${REPOSITORY:-goflare-micro}"
+TAG="${TAG:-0.0.3}"
+PROJECT_ID="${PROJECT_ID:-composed-circle-437303-d2}"
+REPOSITORY="${REPOSITORY:-service}"
 LOCATION="${LOCATION:-asia-east1}"
 DOCKERFILE_DIR="${DOCKERFILE_DIR:-.}"
 PLATFORM="${PLATFORM:-linux/amd64}"

@@ -23,9 +23,9 @@ type CreateUserParams struct {
 	Email        string `json:"email"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint32, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint64, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.PasswordHash, arg.Email)
-	var id uint32
+	var id uint64
 	err := row.Scan(&id)
 	return id, err
 }
@@ -34,7 +34,7 @@ const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id uint32) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uint64) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
@@ -44,7 +44,7 @@ SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE ema
 `
 
 type FindUserByEmailRow struct {
-	ID           uint32             `json:"id"`
+	ID           uint64             `json:"id"`
 	PasswordHash string             `json:"passwordHash"`
 	Username     string             `json:"username"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
@@ -69,7 +69,7 @@ SELECT id, password_hash, username, email, created_at, updated_at  FROM users WH
 `
 
 type FindUserByFirebaseUIDRow struct {
-	ID           uint32             `json:"id"`
+	ID           uint64             `json:"id"`
 	PasswordHash string             `json:"passwordHash"`
 	Username     string             `json:"username"`
 	Email        string             `json:"email"`
@@ -103,7 +103,7 @@ type FindUserByIDRow struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
 }
 
-func (q *Queries) FindUserByID(ctx context.Context, id uint32) (*FindUserByIDRow, error) {
+func (q *Queries) FindUserByID(ctx context.Context, id uint64) (*FindUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, findUserByID, id)
 	var i FindUserByIDRow
 	err := row.Scan(
@@ -121,7 +121,7 @@ SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE userna
 `
 
 type FindUserByUsernameRow struct {
-	ID           uint32             `json:"id"`
+	ID           uint64             `json:"id"`
 	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
@@ -146,7 +146,7 @@ SELECT id, username, email, created_at, updated_at FROM users
 `
 
 type ListUsersRow struct {
-	ID        uint32             `json:"id"`
+	ID        uint64             `json:"id"`
 	Username  string             `json:"username"`
 	Email     string             `json:"email"`
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
@@ -186,7 +186,7 @@ WHERE id = $1
 `
 
 type UpdateUserEmailParams struct {
-	ID    uint32 `json:"id"`
+	ID    uint64 `json:"id"`
 	Email string `json:"email"`
 }
 
@@ -202,7 +202,7 @@ WHERE id = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID           uint32 `json:"id"`
+	ID           uint64 `json:"id"`
 	PasswordHash string `json:"passwordHash"`
 }
 
@@ -218,7 +218,7 @@ WHERE id = $1
 `
 
 type UpdateUsernameParams struct {
-	ID       uint32 `json:"id"`
+	ID       uint64 `json:"id"`
 	Username string `json:"username"`
 }
 

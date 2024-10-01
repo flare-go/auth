@@ -179,7 +179,7 @@ func (e ResourceType) Valid() bool {
 }
 
 type Permission struct {
-	ID          uint32             `json:"id"`
+	ID          uint64             `json:"id"`
 	Name        string             `json:"name"`
 	Description *string            `json:"description"`
 	Resource    ResourceType       `json:"resource"`
@@ -189,7 +189,7 @@ type Permission struct {
 }
 
 type Role struct {
-	ID          uint32             `json:"id"`
+	ID          uint64             `json:"id"`
 	Name        string             `json:"name"`
 	Description *string            `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"createdAt"`
@@ -197,12 +197,12 @@ type Role struct {
 }
 
 type RolePermission struct {
-	RoleID       uint32 `json:"roleId"`
-	PermissionID uint32 `json:"permissionId"`
+	RoleID       uint64 `json:"roleId"`
+	PermissionID uint64 `json:"permissionId"`
 }
 
 type User struct {
-	ID           uint32             `json:"id"`
+	ID           uint64             `json:"id"`
 	Username     string             `json:"username"`
 	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
@@ -216,6 +216,6 @@ type User struct {
 }
 
 type UserRole struct {
-	UserID uint32 `json:"userId"`
-	RoleID uint32 `json:"roleId"`
+	UserID uint64 `json:"userId"`
+	RoleID uint64 `json:"roleId"`
 }

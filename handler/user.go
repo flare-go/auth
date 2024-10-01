@@ -91,7 +91,7 @@ func (uh *UserHandler) CheckPermission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("user_id").(uint32)
+	userID := r.Context().Value("user_id").(uint64)
 
 	if _, err := uh.authentication.CheckPermission(r.Context(), userID, enum.ResourceType(req.Resource), enum.ActionType(req.Action)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

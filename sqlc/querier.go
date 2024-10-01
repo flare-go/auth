@@ -13,18 +13,18 @@ type Querier interface {
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
 	CreateRole(ctx context.Context, arg CreateRoleParams) error
-	CreateUser(ctx context.Context, arg CreateUserParams) (uint32, error)
-	DeletePermission(ctx context.Context, id uint32) error
-	DeleteRole(ctx context.Context, id uint32) error
-	DeleteUser(ctx context.Context, id uint32) error
+	CreateUser(ctx context.Context, arg CreateUserParams) (uint64, error)
+	DeletePermission(ctx context.Context, id uint64) error
+	DeleteRole(ctx context.Context, id uint64) error
+	DeleteUser(ctx context.Context, id uint64) error
 	FindUserByEmail(ctx context.Context, email string) (*FindUserByEmailRow, error)
 	FindUserByFirebaseUID(ctx context.Context, firebaseUid *string) (*FindUserByFirebaseUIDRow, error)
-	FindUserByID(ctx context.Context, id uint32) (*FindUserByIDRow, error)
+	FindUserByID(ctx context.Context, id uint64) (*FindUserByIDRow, error)
 	FindUserByUsername(ctx context.Context, username string) (*FindUserByUsernameRow, error)
-	GetPermissionByID(ctx context.Context, id uint32) (*GetPermissionByIDRow, error)
-	GetRoleByID(ctx context.Context, id uint32) (*GetRoleByIDRow, error)
-	GetRolePermissions(ctx context.Context, roleID uint32) ([]*Permission, error)
-	GetUserRoles(ctx context.Context, userID uint32) ([]*Role, error)
+	GetPermissionByID(ctx context.Context, id uint64) (*GetPermissionByIDRow, error)
+	GetRoleByID(ctx context.Context, id uint64) (*GetRoleByIDRow, error)
+	GetRolePermissions(ctx context.Context, roleID uint64) ([]*Permission, error)
+	GetUserRoles(ctx context.Context, userID uint64) ([]*Role, error)
 	ListRoles(ctx context.Context) ([]*ListRolesRow, error)
 	ListUsers(ctx context.Context) ([]*ListUsersRow, error)
 	RemovePermissionFromRole(ctx context.Context, arg RemovePermissionFromRoleParams) error

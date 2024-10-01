@@ -10,7 +10,7 @@ import (
 type User struct {
 
 	// ID is the ID of the user.
-	ID uint32 `json:"id"`
+	ID uint64 `json:"id"`
 
 	// Username is the username of the user.
 	Username string `json:"username"`
@@ -49,7 +49,7 @@ type User struct {
 // ConvertFromSQLCUser converts a SQLC user to a User.
 func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	type userFields struct {
-		ID           uint32
+		ID           uint64
 		Username     string
 		PasswordHash string
 		Email        string

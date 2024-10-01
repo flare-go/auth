@@ -10,7 +10,7 @@ type PasetoSecret struct {
 
 // PASETOToken is the PASETO token.
 type PASETOToken struct {
-	UserID     uint32
+	UserID     uint64
 	Token      string
 	Expiration int64
 	ExpiresAt  time.Time
@@ -18,7 +18,7 @@ type PASETOToken struct {
 
 // Claims are the claims for the PASETO token.
 type Claims struct {
-	UserID     uint32
+	UserID     uint64
 	Roles      []*Role
 	Token      string
 	Purpose    string

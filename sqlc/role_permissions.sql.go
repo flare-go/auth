@@ -15,8 +15,8 @@ VALUES ($1, $2)
 `
 
 type AssignPermissionToRoleParams struct {
-	RoleID       uint32 `json:"roleId"`
-	PermissionID uint32 `json:"permissionId"`
+	RoleID       uint64 `json:"roleId"`
+	PermissionID uint64 `json:"permissionId"`
 }
 
 func (q *Queries) AssignPermissionToRole(ctx context.Context, arg AssignPermissionToRoleParams) error {
@@ -31,7 +31,7 @@ FROM permissions p
 WHERE rp.role_id = $1
 `
 
-func (q *Queries) GetRolePermissions(ctx context.Context, roleID uint32) ([]*Permission, error) {
+func (q *Queries) GetRolePermissions(ctx context.Context, roleID uint64) ([]*Permission, error) {
 	rows, err := q.db.Query(ctx, getRolePermissions, roleID)
 	if err != nil {
 		return nil, err
@@ -65,8 +65,8 @@ WHERE role_id = $1 AND permission_id = $2
 `
 
 type RemovePermissionFromRoleParams struct {
-	RoleID       uint32 `json:"roleId"`
-	PermissionID uint32 `json:"permissionId"`
+	RoleID       uint64 `json:"roleId"`
+	PermissionID uint64 `json:"permissionId"`
 }
 
 func (q *Queries) RemovePermissionFromRole(ctx context.Context, arg RemovePermissionFromRoleParams) error {

@@ -28,7 +28,7 @@ const deleteRole = `-- name: DeleteRole :exec
 DELETE FROM roles WHERE id = $1
 `
 
-func (q *Queries) DeleteRole(ctx context.Context, id uint32) error {
+func (q *Queries) DeleteRole(ctx context.Context, id uint64) error {
 	_, err := q.db.Exec(ctx, deleteRole, id)
 	return err
 }
@@ -42,7 +42,7 @@ type GetRoleByIDRow struct {
 	Description *string `json:"description"`
 }
 
-func (q *Queries) GetRoleByID(ctx context.Context, id uint32) (*GetRoleByIDRow, error) {
+func (q *Queries) GetRoleByID(ctx context.Context, id uint64) (*GetRoleByIDRow, error) {
 	row := q.db.QueryRow(ctx, getRoleByID, id)
 	var i GetRoleByIDRow
 	err := row.Scan(&i.Name, &i.Description)
@@ -54,7 +54,7 @@ SELECT id, name, description FROM roles
 `
 
 type ListRolesRow struct {
-	ID          uint32  `json:"id"`
+	ID          uint64  `json:"id"`
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
 }

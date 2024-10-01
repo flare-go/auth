@@ -19,8 +19,8 @@ var _ Repository = (*repository)(nil)
 type Repository interface {
 	// Create creates a new permission.
 	Create(ctx context.Context, permission *models.Permission) error
-	GetByID(ctx context.Context, id uint32) (*models.Permission, error)
-	Delete(ctx context.Context, id uint32) error
+	GetByID(ctx context.Context, id uint64) (*models.Permission, error)
+	Delete(ctx context.Context, id uint64) error
 }
 
 // repository is the implementation of the Repository interface.
@@ -50,7 +50,7 @@ func (r *repository) Create(ctx context.Context, permission *models.Permission) 
 }
 
 // GetByID gets a permission by ID.
-func (r *repository) GetByID(ctx context.Context, id uint32) (*models.Permission, error) {
+func (r *repository) GetByID(ctx context.Context, id uint64) (*models.Permission, error) {
 
 	if id == 0 {
 		r.logger.Error("id cannot be zero")
@@ -69,7 +69,7 @@ func (r *repository) GetByID(ctx context.Context, id uint32) (*models.Permission
 }
 
 // Delete deletes a permission by ID.
-func (r *repository) Delete(ctx context.Context, id uint32) error {
+func (r *repository) Delete(ctx context.Context, id uint64) error {
 
 	if id == 0 {
 		r.logger.Error("id cannot be zero")

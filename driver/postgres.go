@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -65,6 +66,14 @@ type PostgresTx interface {
 	Conn() *pgx.Conn
 }
 
+// PostgresConfig is the Postgres config.
+type PostgresConfig struct {
+	URL         string `yaml:"url"`
+	SSLMode     string `yaml:"sslmode"`
+	SSLRootCert string `yaml:"sslrootcert"`
+	Cluster     string `yaml:"cluster"`
+}
+
 // DB holds the driver connection pool
 type DB struct {
 	Pool PostgresPool
@@ -90,25 +99,27 @@ const maxDbLifetime = 5 * time.Minute
 // The function assigns the created pool to the SQL field of the dbConn variable.
 // It also calls the testDB function to check if the connection to the driver is successful.
 // If any errors occur during the process, it returns nil and the errors. Otherwise, it returns the dbConn variable and nil.
-func ConnectSQL(dsn string) (*DB, error) {
+func ConnectSQL(config PostgresConfig) (*DB, error) {
+	connStr := fmt.Sprintf("%s?sslmode=%s&sslrootcert=%s&options=--cluster=%s",
+		config.URL,
+		config.SSLMode,
+		config.SSLRootCert,
+		config.Cluster)
 
-	// parse the config
-	config, err := pgxpool.ParseConfig(dsn)
+	pgConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
 		return nil, err
 	}
 
-	config.MaxConns = int32(maxOpenDbConn)
-	config.MaxConnLifetime = maxDbLifetime
+	pgConfig.MaxConns = int32(maxOpenDbConn)
+	pgConfig.MaxConnLifetime = maxDbLifetime
 
-	// create the pool
-	pool, err := pgxpool.NewWithConfig(context.Background(), config) // 使用ConnectConfig
+	pool, err := pgxpool.NewWithConfig(context.Background(), pgConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	dbConn.Pool = pool
-	// Set transaction options to serializable
 
 	if err = testDB(pool); err != nil {
 		return nil, err

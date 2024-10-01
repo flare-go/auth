@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,7 +65,7 @@ func (s *Server) Run(address string) error {
 			s.logger.Fatal("Failed to load policies", zap.Error(err))
 		}
 		s.logger.Info("Starting server on " + address)
-		if err := s.Start(address); err != nil && err != http.ErrServerClosed {
+		if err := s.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}()

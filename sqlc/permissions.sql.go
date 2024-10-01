@@ -35,7 +35,7 @@ const deletePermission = `-- name: DeletePermission :exec
 DELETE FROM permissions WHERE id = $1
 `
 
-func (q *Queries) DeletePermission(ctx context.Context, id uint32) error {
+func (q *Queries) DeletePermission(ctx context.Context, id uint64) error {
 	_, err := q.db.Exec(ctx, deletePermission, id)
 	return err
 }
@@ -51,7 +51,7 @@ type GetPermissionByIDRow struct {
 	Action      ActionType   `json:"action"`
 }
 
-func (q *Queries) GetPermissionByID(ctx context.Context, id uint32) (*GetPermissionByIDRow, error) {
+func (q *Queries) GetPermissionByID(ctx context.Context, id uint64) (*GetPermissionByIDRow, error) {
 	row := q.db.QueryRow(ctx, getPermissionByID, id)
 	var i GetPermissionByIDRow
 	err := row.Scan(

@@ -1,40 +1,98 @@
 package config
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"net/url"
 
 	pgadapter "github.com/casbin/casbin-pg-adapter"
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
+	"github.com/go-pg/pg/v10"
 	"go.uber.org/zap"
 )
 
-// ProvideEnforcer provides a new enforcer.
 func ProvideEnforcer(appConfig *Config, logger *zap.Logger) (*casbin.Enforcer, error) {
-
 	m, err := model.NewModelFromFile("./casbin.conf")
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, fmt.Errorf("failed to create new model from file: %w", err)
+		logger.Error("無法從文件創建新模型", zap.Error(err))
+		return nil, fmt.Errorf("無法從文件創建新模型: %w", err)
 	}
 
-	adapter, err := pgadapter.NewAdapter(appConfig.Postgres.URL)
+	// 解析連接字符串
+	opts, err := pg.ParseURL(appConfig.Postgres.URL)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, fmt.Errorf("failed to create new adapter: %w", err)
+		logger.Error("無法解析數據庫 URL", zap.Error(err))
+		return nil, fmt.Errorf("無法解析數據庫 URL: %w", err)
 	}
 
+	// 從 URL 中提取主機名
+	parsedURL, err := url.Parse(appConfig.Postgres.URL)
+	if err != nil {
+		logger.Error("無法解析 URL", zap.Error(err))
+		return nil, fmt.Errorf("無法解析 URL: %w", err)
+	}
+	hostname := parsedURL.Hostname()
+
+	// 設置 TLS 配置
+	tlsConfig := &tls.Config{
+		ServerName: hostname,
+	}
+
+	switch appConfig.Postgres.SSLMode {
+	case "disable":
+		opts.TLSConfig = nil
+	case "require":
+		opts.TLSConfig = tlsConfig
+	case "verify-ca", "verify-full":
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil {
+			logger.Error("無法獲取系統證書池", zap.Error(err))
+			return nil, fmt.Errorf("無法獲取系統證書池: %w", err)
+		}
+		if appConfig.Postgres.SSLRootCert != "" {
+			cert, err := ioutil.ReadFile(appConfig.Postgres.SSLRootCert)
+			if err != nil {
+				logger.Error("無法讀取 SSL 根證書", zap.Error(err))
+				return nil, fmt.Errorf("無法讀取 SSL 根證書: %w", err)
+			}
+			if ok := rootCAs.AppendCertsFromPEM(cert); !ok {
+				logger.Error("無法添加 SSL 根證書到證書池")
+				return nil, fmt.Errorf("無法添加 SSL 根證書到證書池")
+			}
+		}
+		tlsConfig.RootCAs = rootCAs
+		opts.TLSConfig = tlsConfig
+	default:
+		logger.Error("無效的 SSL 模式", zap.String("mode", appConfig.Postgres.SSLMode))
+		return nil, fmt.Errorf("無效的 SSL 模式: %s", appConfig.Postgres.SSLMode)
+	}
+
+	// 創建數據庫連接
+	db := pg.Connect(opts)
+
+	// 測試連接
+	_, err = db.Exec("SELECT 1")
+	if err != nil {
+		logger.Error("無法連接到數據庫", zap.Error(err))
+		return nil, fmt.Errorf("無法連接到數據庫: %w", err)
+	}
+
+	// 創建適配器
+	adapter, err := pgadapter.NewAdapterByDB(db)
+	if err != nil {
+		logger.Error("無法創建新適配器", zap.Error(err))
+		return nil, fmt.Errorf("無法創建新適配器: %w", err)
+	}
+
+	// 創建執行器
 	enforcer, err := casbin.NewEnforcer(m, adapter)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, fmt.Errorf("failed to create new enforcer: %w", err)
+		logger.Error("無法創建新執行器", zap.Error(err))
+		return nil, fmt.Errorf("無法創建新執行器: %w", err)
 	}
-
-	// 加載策略
-	//if err = enforcer.LoadPolicy(); err != nil {
-	//	appConfig.Logger.Error(err.Error())
-	//	return nil, err
-	//}
 
 	return enforcer, nil
 }

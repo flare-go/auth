@@ -9,7 +9,7 @@ import (
 // Role is the role for the user.
 type Role struct {
 	// ID is the ID of the role.
-	ID uint32 `json:"id"`
+	ID uint64 `json:"id"`
 
 	// Name is the name of the role.
 	Name string `json:"name"`
@@ -27,7 +27,7 @@ type Role struct {
 // ConvertFromSQLCRole converts a SQLC role to a Role.
 func (r *Role) ConvertFromSQLCRole(sqlcRole any) *Role {
 
-	var id uint32
+	var id uint64
 	var name, description string
 
 	switch sp := sqlcRole.(type) {

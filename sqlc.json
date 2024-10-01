@@ -24,19 +24,19 @@
         "overrides": [
           {
             "column": "*.id",
-            "go_type": "uint32"
+            "go_type": "uint64"
           },
           {
             "column": "*.user_id",
-            "go_type": "uint32"
+            "go_type": "uint64"
           },
           {
             "column": "*.role_id",
-            "go_type": "uint32"
+            "go_type": "uint64"
           },
           {
             "column": "*.permission_id",
-            "go_type": "uint32"
+            "go_type": "uint64"
           }
         ]
       }

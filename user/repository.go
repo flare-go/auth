@@ -20,10 +20,10 @@ var _ Repository = (*repository)(nil)
 type Repository interface {
 
 	// CreateUser creates a new user.
-	CreateUser(ctx context.Context, user *models.User) (uint32, error)
+	CreateUser(ctx context.Context, user *models.User) (uint64, error)
 
 	// FindUserByID finds a user by its ID.
-	FindUserByID(ctx context.Context, id uint32) (*models.User, error)
+	FindUserByID(ctx context.Context, id uint64) (*models.User, error)
 
 	// FindUserByUsername finds a user by its username.
 	FindUserByUsername(ctx context.Context, username string) (*models.User, error)
@@ -35,10 +35,10 @@ type Repository interface {
 	FindUserByFirebaseUID(ctx context.Context, firebaseUID string) (*models.User, error)
 
 	// AssignRoleToUserWithTx assigns a role to a user.
-	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error
+	AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint64) error
 
 	// FindUserRoles retrieves a user's roles.
-	FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error)
+	FindUserRoles(ctx context.Context, userID uint64) ([]*models.Role, error)
 
 	// ListAllUsers lists all users.
 	ListAllUsers(ctx context.Context) ([]*models.User, error)
@@ -59,7 +59,7 @@ func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 }
 
 // CreateUser creates a new user.
-func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint32, error) {
+func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint64, error) {
 	return sqlc.New(r.conn).CreateUser(ctx, sqlc.CreateUserParams{
 		Username:     user.Username,
 		PasswordHash: user.PasswordHash,
@@ -68,7 +68,7 @@ func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint32,
 }
 
 // FindUserByID finds a user by its ID.
-func (r *repository) FindUserByID(ctx context.Context, id uint32) (*models.User, error) {
+func (r *repository) FindUserByID(ctx context.Context, id uint64) (*models.User, error) {
 	if id == 0 {
 		return nil, errors.New("id is required")
 	}
@@ -126,7 +126,7 @@ func (r *repository) FindUserByFirebaseUID(ctx context.Context, firebaseUID stri
 }
 
 // AssignRoleToUserWithTx assigns a role to a user.
-func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint32) error {
+func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID uint64) error {
 	tx, err := r.conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -156,7 +156,7 @@ func (r *repository) AssignRoleToUserWithTx(ctx context.Context, userID, roleID 
 }
 
 // FindUserRoles retrieves a user's roles.
-func (r *repository) FindUserRoles(ctx context.Context, userID uint32) ([]*models.Role, error) {
+func (r *repository) FindUserRoles(ctx context.Context, userID uint64) ([]*models.Role, error) {
 	if userID == 0 {
 		return nil, errors.New("userID is required")
 	}

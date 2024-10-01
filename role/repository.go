@@ -17,11 +17,11 @@ var _ Repository = (*repository)(nil)
 // Repository is the interface for the role repository.
 type Repository interface {
 	CreateRole(ctx context.Context, role *models.Role) error
-	FindRoleByID(ctx context.Context, id uint32) (*models.Role, error)
-	DeleteRole(ctx context.Context, roleID uint32) error
-	AssignPermissionToRole(ctx context.Context, roleID, permissionID uint32) error
-	RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint32) error
-	FindRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error)
+	FindRoleByID(ctx context.Context, id uint64) (*models.Role, error)
+	DeleteRole(ctx context.Context, roleID uint64) error
+	AssignPermissionToRole(ctx context.Context, roleID, permissionID uint64) error
+	RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint64) error
+	FindRolePermissions(ctx context.Context, roleID uint64) ([]*models.Permission, error)
 	ListAllRoles(ctx context.Context) ([]*models.Role, error)
 }
 
@@ -49,7 +49,7 @@ func (r *repository) CreateRole(ctx context.Context, role *models.Role) error {
 }
 
 // FindRoleByID finds a role by ID.
-func (r *repository) FindRoleByID(ctx context.Context, id uint32) (*models.Role, error) {
+func (r *repository) FindRoleByID(ctx context.Context, id uint64) (*models.Role, error) {
 
 	if id == 0 {
 		r.logger.Error("id is required")
@@ -66,13 +66,13 @@ func (r *repository) FindRoleByID(ctx context.Context, id uint32) (*models.Role,
 }
 
 // DeleteRole deletes a role by ID.
-func (r *repository) DeleteRole(ctx context.Context, roleID uint32) error {
+func (r *repository) DeleteRole(ctx context.Context, roleID uint64) error {
 
 	return sqlc.New(r.conn).DeleteRole(ctx, roleID)
 }
 
 // AssignPermissionToRole assigns a permission to a role.
-func (r *repository) AssignPermissionToRole(ctx context.Context, roleID, permissionID uint32) error {
+func (r *repository) AssignPermissionToRole(ctx context.Context, roleID, permissionID uint64) error {
 
 	return sqlc.New(r.conn).AssignPermissionToRole(ctx, sqlc.AssignPermissionToRoleParams{
 		RoleID:       roleID,
@@ -81,7 +81,7 @@ func (r *repository) AssignPermissionToRole(ctx context.Context, roleID, permiss
 }
 
 // RemovePermissionFromRole removes a permission from a role.
-func (r *repository) RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint32) error {
+func (r *repository) RemovePermissionFromRole(ctx context.Context, roleID, permissionID uint64) error {
 
 	return sqlc.New(r.conn).RemovePermissionFromRole(ctx, sqlc.RemovePermissionFromRoleParams{
 		RoleID:       roleID,
@@ -90,7 +90,7 @@ func (r *repository) RemovePermissionFromRole(ctx context.Context, roleID, permi
 }
 
 // FindRolePermissions finds the permissions for a role.
-func (r *repository) FindRolePermissions(ctx context.Context, roleID uint32) ([]*models.Permission, error) {
+func (r *repository) FindRolePermissions(ctx context.Context, roleID uint64) ([]*models.Permission, error) {
 
 	if roleID == 0 {
 		r.logger.Error("id is required")
