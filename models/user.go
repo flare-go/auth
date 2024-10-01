@@ -51,7 +51,7 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	type userFields struct {
 		ID           uint32
 		Username     string
-		PasswordHash *string
+		PasswordHash string
 		Email        string
 	}
 
@@ -96,9 +96,7 @@ func (u *User) ConvertFromSQLCUser(sqlcUser any) *User {
 	u.ID = fields.ID
 	u.Username = fields.Username
 	u.Email = fields.Email
-	if fields.PasswordHash != nil {
-		u.PasswordHash = *fields.PasswordHash
-	}
+	u.PasswordHash = fields.PasswordHash
 
 	return u
 }

@@ -49,12 +49,14 @@ func NewServer(
 func (s *Server) Start(address string) error {
 	s.registerRoutes()
 	s.server = &http.Server{
-		Addr:    address,
-		Handler: s.mux,
+		Addr:              address,
+		Handler:           s.mux,
+		ReadHeaderTimeout: 10 * time.Second, // 添加這一行
 	}
 	return s.server.ListenAndServe()
 }
 
+// Run runs the server.
 func (s *Server) Run(address string) error {
 	go func() {
 		// Load policies
@@ -77,6 +79,7 @@ func (s *Server) Run(address string) error {
 	return s.server.Shutdown(ctx)
 }
 
+// registerRoutes registers the routes for the server.
 func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/login", s.user.Login)
 	s.mux.HandleFunc("/register", s.user.Register)

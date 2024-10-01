@@ -12,7 +12,7 @@ require (
 	github.com/redis/go-redis/v9 v9.6.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.27.0
-	golang.org/x/exp v0.0.0-20190121172915-509febef88a4
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/api v0.199.0
 	google.golang.org/grpc v1.67.0
@@ -46,6 +46,7 @@ require (
 	github.com/go-pg/zerochecker v0.2.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect

@@ -11,14 +11,16 @@ import (
 	"goflare.io/auth/user"
 )
 
+// _ ensures a service type implements the Service interface at compile-time.
 var _ Service = (*service)(nil)
 
-// Service is the interface for the authorization service.
+// Service defines the set of methods for managing and loading policies within the application.
 type Service interface {
 	// LoadPolicies loads all policies.
 	LoadPolicies(ctx context.Context) error
 }
 
+// service represents the service layer for user and role management, policy enforcement, and logging.
 type service struct {
 	userStore user.Repository
 	roleStore role.Repository
@@ -26,6 +28,7 @@ type service struct {
 	logger    *zap.Logger
 }
 
+// NewService creates a new instance of the Service with the provided repositories, enforcer, and logger.
 func NewService(
 	userStore user.Repository,
 	roleStore role.Repository,
@@ -40,7 +43,8 @@ func NewService(
 	}
 }
 
-// LoadPolicies loads all policies.
+// LoadPolicies loads the roles, permissions,
+// and user-role associations into the policy enforcer based on data from stores.
 func (s *service) LoadPolicies(ctx context.Context) error {
 	roleModels, err := s.roleStore.ListAllRoles(ctx)
 	if err != nil {
@@ -69,7 +73,7 @@ func (s *service) LoadPolicies(ctx context.Context) error {
 	}
 
 	for _, userModel := range userModels {
-		userRoles, err := s.userStore.FindUserRoles(ctx, uint32(userModel.ID))
+		userRoles, err := s.userStore.FindUserRoles(ctx, userModel.ID)
 		if err != nil {
 			return fmt.Errorf("failed to get roles for user %s: %w", userModel.Username, err)
 		}

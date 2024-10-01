@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"goflare.io/auth/authentication"
+	"goflare.io/auth/models/enum"
 )
 
 // AuthenticationMiddleware represents middleware for authentication
@@ -36,7 +37,7 @@ func (middleware *AuthenticationMiddleware) AuthorizeUser(next http.HandlerFunc)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user_id", userID)
+		ctx := context.WithValue(r.Context(), enum.UserIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

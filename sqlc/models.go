@@ -204,7 +204,7 @@ type RolePermission struct {
 type User struct {
 	ID           uint32             `json:"id"`
 	Username     string             `json:"username"`
-	PasswordHash *string            `json:"passwordHash"`
+	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
 	Phone        string             `json:"phone"`
 	FirebaseUid  *string            `json:"firebaseUid"`

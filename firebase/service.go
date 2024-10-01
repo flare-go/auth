@@ -2,30 +2,31 @@ package firebase
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
-
-	"goflare.io/auth/config"
 
 	firebase "firebase.google.com/go/v4"
 	firebaseauth "firebase.google.com/go/v4/auth"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/exp/rand"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 
+	"goflare.io/auth/config"
 	"goflare.io/auth/models"
 	"goflare.io/auth/user"
 )
 
+// Service is the interface for the Firebase service.
 var _ Service = (*service)(nil)
 
 // Service is the interface for the Firebase service.
@@ -50,6 +51,7 @@ type service struct {
 	projectID   string
 }
 
+// NewService creates a new Firebase service.
 func NewService(
 	userStore user.Repository,
 	config *config.Config,
@@ -203,15 +205,16 @@ func (s *service) OauthLogin(ctx context.Context, provider, idToken string) (*mo
 			s.logger.Error("Failed to query user", zap.Error(err))
 			return nil, fmt.Errorf("failed to query user: %w", err)
 		}
-	} else {
-		// // Update user's last login time
-		// if err := a.userStore.UpdateLastLogin(ctx, user.ID); err != nil {
-		// 	a.logger.Warn("Failed to update last login time", zap.Error(err))
-		// }
 	}
+	// } else {
+	// 	// // Update user's last login time
+	// 	// if err := a.userStore.UpdateLastLogin(ctx, user.ID); err != nil {
+	// 	// 	a.logger.Warn("Failed to update last login time", zap.Error(err))
+	// 	// }
+	// }
 
 	// Check if provider matches
-	if strings.ToLower(user.Provider) != strings.ToLower(provider) {
+	if !strings.EqualFold(user.Provider, provider) {
 		s.logger.Warn("Provider mismatch", zap.String("expected", user.Provider), zap.String("actual", provider))
 		return nil, fmt.Errorf("provider mismatch")
 	}
@@ -421,6 +424,8 @@ func providerEndpoint(provider string) oauth2.Endpoint {
 
 // generateRandomState generates a random state string.
 func generateRandomState() string {
-	rand.Seed(uint64(time.Now().UnixNano()))
-	return fmt.Sprintf("%d", rand.Intn(1000000))
+	max := big.NewInt(1000000)
+	n, _ := rand.Int(rand.Reader, max)
+
+	return fmt.Sprintf("%06d", n.Uint64())
 }

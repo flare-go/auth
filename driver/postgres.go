@@ -1,4 +1,3 @@
-// Package driver
 package driver
 
 import (
@@ -34,6 +33,7 @@ type PostgresPool interface {
 	Close()
 }
 
+// PostgresTx is an interface that represents a transaction to a driver.
 type PostgresTx interface {
 	// Begin starts a pseudo nested transaction.
 	Begin(ctx context.Context) (pgx.Tx, error)

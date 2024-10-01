@@ -10,13 +10,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	Local           = "local"
-	Cloud           = "cloud"
-	ServerStartPort = ":8080"
-	ENVConfigType   = "env"
-	Environment     = "environment"
-)
+// Local 是用於本地開發環境的常量
+const Local = "local"
+
+// Cloud 是用於雲端服務的常量
+const Cloud = "cloud"
+
+// ServerStartPort 是服務啟動的端口
+const ServerStartPort = ":8080"
+
+// ENVConfigType 是環境變量配置類型
+const ENVConfigType = "env"
+
+// Environment 是環境變量
+const Environment = "environment"
 
 // Config is the application config.
 type Config struct {

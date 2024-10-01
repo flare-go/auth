@@ -17,6 +17,7 @@ type UserHandler struct {
 	logger          *zap.Logger
 }
 
+// NewUserHandler creates a new UserHandler.
 func NewUserHandler(
 	authentication authentication.Service,
 	firebaseService firebase.Service,

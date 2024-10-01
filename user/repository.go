@@ -13,6 +13,9 @@ import (
 	"goflare.io/auth/sqlc"
 )
 
+// _ is a type assertion to ensure that the repository implements the Repository interface.
+var _ Repository = (*repository)(nil)
+
 // Repository defines the contract for the user repository.
 type Repository interface {
 
@@ -41,11 +44,13 @@ type Repository interface {
 	ListAllUsers(ctx context.Context) ([]*models.User, error)
 }
 
+// repository is the implementation of the Repository interface.
 type repository struct {
 	conn   driver.PostgresPool
 	logger *zap.Logger
 }
 
+// NewRepository creates a new repository.
 func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 	return &repository{
 		conn:   conn,
@@ -57,7 +62,7 @@ func NewRepository(conn driver.PostgresPool, logger *zap.Logger) Repository {
 func (r *repository) CreateUser(ctx context.Context, user *models.User) (uint32, error) {
 	return sqlc.New(r.conn).CreateUser(ctx, sqlc.CreateUserParams{
 		Username:     user.Username,
-		PasswordHash: &user.PasswordHash,
+		PasswordHash: user.PasswordHash,
 		Email:        user.Email,
 	})
 }

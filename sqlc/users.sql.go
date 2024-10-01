@@ -18,9 +18,9 @@ RETURNING id
 `
 
 type CreateUserParams struct {
-	Username     string  `json:"username"`
-	PasswordHash *string `json:"passwordHash"`
-	Email        string  `json:"email"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"passwordHash"`
+	Email        string `json:"email"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uint32, error) {
@@ -45,7 +45,7 @@ SELECT id, password_hash, username, created_at, updated_at  FROM users WHERE ema
 
 type FindUserByEmailRow struct {
 	ID           uint32             `json:"id"`
-	PasswordHash *string            `json:"passwordHash"`
+	PasswordHash string             `json:"passwordHash"`
 	Username     string             `json:"username"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
@@ -70,7 +70,7 @@ SELECT id, password_hash, username, email, created_at, updated_at  FROM users WH
 
 type FindUserByFirebaseUIDRow struct {
 	ID           uint32             `json:"id"`
-	PasswordHash *string            `json:"passwordHash"`
+	PasswordHash string             `json:"passwordHash"`
 	Username     string             `json:"username"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
@@ -97,7 +97,7 @@ SELECT username, password_hash, email, created_at, updated_at  FROM users WHERE 
 
 type FindUserByIDRow struct {
 	Username     string             `json:"username"`
-	PasswordHash *string            `json:"passwordHash"`
+	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
@@ -122,7 +122,7 @@ SELECT id, password_hash, email, created_at, updated_at  FROM users WHERE userna
 
 type FindUserByUsernameRow struct {
 	ID           uint32             `json:"id"`
-	PasswordHash *string            `json:"passwordHash"`
+	PasswordHash string             `json:"passwordHash"`
 	Email        string             `json:"email"`
 	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
@@ -202,8 +202,8 @@ WHERE id = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID           uint32  `json:"id"`
-	PasswordHash *string `json:"passwordHash"`
+	ID           uint32 `json:"id"`
+	PasswordHash string `json:"passwordHash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {

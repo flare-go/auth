@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/casbin/casbin/v2"
 	"go.uber.org/zap"
 
@@ -14,12 +16,10 @@ import (
 	"goflare.io/auth/models/enum"
 	"goflare.io/auth/token"
 	"goflare.io/auth/user"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var _ Service = (*service)(nil)
 
-// Service is the interface for the authentication service.
 type Service interface {
 	// Login logs in a user with email and password.
 	Login(ctx context.Context, email, password string) (*models.PASETOToken, error)
@@ -51,7 +51,6 @@ func NewService(userStore user.Repository, config *config.Config, enforcer *casb
 	}
 }
 
-// Login implements user login functionality.
 func (s *service) Login(ctx context.Context, email, password string) (*models.PASETOToken, error) {
 	s.logger.Info("login user", zap.String("email", email))
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -72,13 +71,11 @@ func (s *service) Login(ctx context.Context, email, password string) (*models.PA
 	return s.tokenManager.GenerateToken(user.ID)
 }
 
-// Logout implements user logout functionality.
 func (s *service) Logout(ctx context.Context, token string) error {
 	s.logger.Info("logout user", zap.String("token", token))
 	return s.tokenManager.RevokeToken(token)
 }
 
-// Register implements user registration functionality.
 func (s *service) Register(ctx context.Context, username, password, email, phone string) (*models.PASETOToken, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -105,13 +102,11 @@ func (s *service) Register(ctx context.Context, username, password, email, phone
 	return s.tokenManager.GenerateToken(user.ID)
 }
 
-// ValidateToken validates a token.
 func (s *service) ValidateToken(token string) (uint32, error) {
 	s.logger.Info("validate token", zap.String("token", token))
 	return s.tokenManager.ValidateToken(token)
 }
 
-// CheckPermission implements permission checking functionality.
 func (s *service) CheckPermission(ctx context.Context, userID uint32, resource enum.ResourceType, action enum.ActionType) (bool, error) {
 	s.logger.Info("check permission", zap.Uint32("userID", userID), zap.Any("resource", resource), zap.Any("action", action))
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
