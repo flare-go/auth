@@ -5,15 +5,16 @@ package main
 
 import (
 	"github.com/google/wire"
-	"goflare.io/auth/authentication"
-	"goflare.io/auth/authorization"
-	"goflare.io/auth/config"
-	"goflare.io/auth/firebase"
-	"goflare.io/auth/handler"
-	"goflare.io/auth/middleware"
-	"goflare.io/auth/role"
-	"goflare.io/auth/server"
-	"goflare.io/auth/user"
+
+	"goflare.io/auth/internal/authentication"
+	"goflare.io/auth/internal/authorization"
+	"goflare.io/auth/internal/config"
+	"goflare.io/auth/internal/firebase"
+	"goflare.io/auth/internal/handler"
+	"goflare.io/auth/internal/middleware"
+	"goflare.io/auth/internal/role"
+	"goflare.io/auth/internal/server"
+	"goflare.io/auth/internal/user"
 )
 
 func InitializeAuthService() (*server.Server, error) {

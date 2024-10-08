@@ -47,12 +47,17 @@ LABEL description="Auth Service for GoFlare"
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the binary and necessary files from the builder stage
+# Create necessary directories for configurations
+RUN mkdir -p /app/configs/casbin /app/configs/firebase
+
+# Copy the binary
 COPY --from=builder /app/auth .
-COPY --from=builder /app/config.yaml .
-COPY --from=builder /app/firebase-service-account.json .
-COPY --from=builder /app/casbin.conf .
-COPY --from=builder /app/root.crt .
+
+# Copy configuration files into their respective directories
+COPY --from=builder /app/configs/casbin/casbin.conf /app/configs/casbin/
+COPY --from=builder /app/configs/firebase/goflareio-45x7t8-3f06e452eb78.json /app/configs/firebase/
+COPY --from=builder /app/config.yaml /app/configs/
+COPY --from=builder /app/root.crt /app/configs/
 
 # Expose port 8080
 EXPOSE 8080

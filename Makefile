@@ -60,7 +60,7 @@ clean:
 	kubectl delete -f k8s/
 
 sqlc-generate:
-	sqlc generate
+	sqlc generate -f configs/sqlc/sqlc.json
 
 migrate-up:
 	migrate -database ${POSTGRESQL_URL} -path ./migrations up
