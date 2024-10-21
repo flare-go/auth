@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"goflare.io/nexus"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -11,7 +12,6 @@ import (
 	"github.com/casbin/casbin/v2"
 	"go.uber.org/zap"
 
-	"goflare.io/auth/internal/config"
 	"goflare.io/auth/internal/models"
 	"goflare.io/auth/internal/models/enum"
 	"goflare.io/auth/internal/token"
@@ -45,9 +45,9 @@ type service struct {
 }
 
 // NewService creates a new instance of Service with a provided user repository, configuration, enforcer, and logger.
-func NewService(userStore user.Repository, config *config.Config, enforcer *casbin.Enforcer, logger *zap.Logger) Service {
+func NewService(userStore user.Repository, config *nexus.Config, enforcer *casbin.Enforcer, logger *zap.Logger) Service {
 
-	tokenManager := token.NewPasetoManager(config.Paseto.PublicSecretKey, config.Paseto.PrivateSecretKey, config.Paseto.TokenExpirationTime)
+	tokenManager := token.NewPasetoManager(config.Paseto.PublicKey, config.Paseto.PrivateKey, 24*time.Hour)
 	return &service{
 		userStore:    userStore,
 		tokenManager: tokenManager,

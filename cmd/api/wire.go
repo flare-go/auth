@@ -5,10 +5,10 @@ package main
 
 import (
 	"github.com/google/wire"
+	"goflare.io/nexus"
 
 	"goflare.io/auth/internal/authentication"
 	"goflare.io/auth/internal/authorization"
-	"goflare.io/auth/internal/config"
 	"goflare.io/auth/internal/firebase"
 	"goflare.io/auth/internal/handler"
 	"goflare.io/auth/internal/middleware"
@@ -20,10 +20,15 @@ import (
 func InitializeAuthService() (*server.Server, error) {
 
 	wire.Build(
-		config.ProvideApplicationConfig,
-		config.NewLogger,
-		config.ProvidePostgresConn,
-		config.ProvideEnforcer,
+		//config.ProvideApplicationConfig,
+		//config.NewLogger,
+		//config.ProvidePostgresConn,
+		//config.ProvideEnforcer,
+		nexus.NewCore,
+		nexus.ProvideLogger,
+		nexus.ProvidePostgresPool,
+		nexus.ProvideConfig,
+		nexus.ProvideEnforcer,
 		user.NewRepository,
 		role.NewRepository,
 		firebase.NewService,

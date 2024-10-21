@@ -36,6 +36,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Compress the binary using UPX
 RUN upx --best --lzma auth
 
+RUN mkdir -p /app/configs/casbin /app/configs/firebase /app/configs/cockroach/ca
+
 # Start a new stage from scratch for a smaller final image
 FROM gcr.io/distroless/static-debian11
 
@@ -47,17 +49,10 @@ LABEL description="Auth Service for GoFlare"
 # Set the working directory in the container
 WORKDIR /app
 
-# Create necessary directories for configurations
-RUN mkdir -p /app/configs/casbin /app/configs/firebase
-
 # Copy the binary
 COPY --from=builder /app/auth .
+COPY --from=builder /app/configs /app/configs/
 
-# Copy configuration files into their respective directories
-COPY --from=builder /app/configs/casbin/casbin.conf /app/configs/casbin/
-COPY --from=builder /app/configs/firebase/goflareio-45x7t8-3f06e452eb78.json /app/configs/firebase/
-COPY --from=builder /app/config.yaml /app/configs/
-COPY --from=builder /app/root.crt /app/configs/
 
 # Expose port 8080
 EXPOSE 8080

@@ -86,7 +86,7 @@ gcp-clean:
 gcp-login:
 	@echo "設置應用默認憑證..."
 	gcloud auth application-default login
-	@echo "登錄主帳戶..."
+	@echo "登入主帳戶..."
 	gcloud auth login
 
 gcp-config:
@@ -95,11 +95,11 @@ gcp-config:
 	gcloud auth configure-docker $(REGION)-docker.pkg.dev
 
 gcp-push:
-	@echo "推送 Docker 映像到 Artifact Registry..."
+	@echo "推送 Docker image 到 Artifact Registry..."
 	docker push $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPOSITORY)/$(IMAGE_NAME):$(TAG)
 
 gcp-list:
-	@echo "列出 Artifact Registry 中的映像..."
+	@echo "列出 Artifact Registry 中的 image ..."
 	gcloud artifacts docker images list $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPOSITORY)
 
 gcp-check-permissions:
@@ -127,8 +127,8 @@ help:
 	@echo "  make k8s-delete        - 從 Kubernetes 刪除部署"
 	@echo "  make clean             - 清理項目"
 	@echo "  make sqlc-generate     - 生成 SQLC 代碼"
-	@echo "  make migrate-up        - 運行數據庫遷移（向上）"
-	@echo "  make migrate-down      - 運行數據庫遷移（向下）"
+	@echo "  make migrate-up        - 運行數據庫遷移（建立）"
+	@echo "  make migrate-down      - 運行數據庫遷移（刪除）"
 	@echo "  make proto             - 生成 Protocol Buffers 代碼"
 	@echo "  make gcp-setup         - 設置 Google Cloud 環境"
 	@echo "  make gcp-push          - 推送 Docker 映像到 Artifact Registry"

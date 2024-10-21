@@ -14,7 +14,7 @@ func main() {
 	}
 
 	// Run the server
-	if err = server.Run(":8080"); err != nil {
+	if err = server.Run(":8082"); err != nil {
 		log.Fatal(err.Error())
 	}
 }

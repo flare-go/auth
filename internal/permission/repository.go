@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"goflare.io/auth/internal/driver"
 	"goflare.io/auth/internal/models"
 	"goflare.io/auth/internal/sqlc"
+	"goflare.io/nexus/driver"
 )
 
 // _ is a type assertion to ensure that the repository implements the Repository interface.

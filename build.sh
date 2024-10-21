@@ -4,7 +4,7 @@ set -eo pipefail
 
 # Default values (can be overridden by environment variables)
 IMAGE_NAME="${IMAGE_NAME:-auth-service}"
-TAG="${TAG:-0.0.4}"
+TAG="${TAG:-0.0.5}"
 PROJECT_ID="${PROJECT_ID:-composed-circle-437303-d2}"
 REPOSITORY="${REPOSITORY:-service}"
 LOCATION="${LOCATION:-asia-east1}"

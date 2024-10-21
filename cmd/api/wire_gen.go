@@ -9,35 +9,30 @@ package main
 import (
 	"goflare.io/auth/internal/authentication"
 	"goflare.io/auth/internal/authorization"
-	"goflare.io/auth/internal/config"
 	"goflare.io/auth/internal/firebase"
 	"goflare.io/auth/internal/handler"
 	"goflare.io/auth/internal/middleware"
 	"goflare.io/auth/internal/role"
 	"goflare.io/auth/internal/server"
 	"goflare.io/auth/internal/user"
+	"goflare.io/nexus"
 )
 
 // Injectors from wire.go:
 
 func InitializeAuthService() (*server.Server, error) {
-	configConfig, err := config.ProvideApplicationConfig()
-	if err != nil {
-		return nil, err
-	}
-	postgresPool, err := config.ProvidePostgresConn(configConfig)
-	if err != nil {
-		return nil, err
-	}
-	logger := config.NewLogger()
+	core := nexus.NewCore()
+	postgresPool := nexus.ProvidePostgresPool(core)
+	logger := nexus.ProvideLogger(core)
 	repository := user.NewRepository(postgresPool, logger)
-	enforcer, err := config.ProvideEnforcer(configConfig, logger)
+	config := nexus.ProvideConfig(core)
+	enforcer, err := nexus.ProvideEnforcer(core)
 	if err != nil {
 		return nil, err
 	}
-	service := authentication.NewService(repository, configConfig, enforcer, logger)
+	service := authentication.NewService(repository, config, enforcer, logger)
 	authenticationMiddleware := middleware.NewAuthenticationMiddleware(service)
-	firebaseService, err := firebase.NewService(repository, configConfig, logger)
+	firebaseService, err := firebase.NewService(repository, config, logger)
 	if err != nil {
 		return nil, err
 	}

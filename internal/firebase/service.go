@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"goflare.io/nexus"
 	"io"
 	"math/big"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	firebaseauth "firebase.google.com/go/v4/auth"
 	"go.uber.org/zap"
 
-	"goflare.io/auth/internal/config"
 	"goflare.io/auth/internal/models"
 	"goflare.io/auth/internal/user"
 )
@@ -55,10 +55,10 @@ type service struct {
 // NewService creates a new Firebase service.
 func NewService(
 	userStore user.Repository,
-	config *config.Config,
+	config *nexus.Config,
 	logger *zap.Logger,
 ) (Service, error) {
-	opt := option.WithCredentialsFile(config.Firebase.ServiceAccountFilePath)
+	opt := option.WithCredentialsFile(config.Firebase.ServiceAccountKeyPath)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing Firebase app: %v", err)
@@ -70,9 +70,9 @@ func NewService(
 	}
 
 	oauthConfig := &oauth2.Config{
-		ClientID:     config.Firebase.ClientID,
-		ClientSecret: config.Firebase.ClientSecret,
-		RedirectURL:  config.Firebase.RedirectURL,
+		//ClientID:     config.Firebase.ClientID,
+		//ClientSecret: config.Firebase.ClientSecret,
+		//RedirectURL:  config.Firebase.RedirectURL,
 	}
 
 	return &service{
@@ -80,7 +80,7 @@ func NewService(
 		client:      client,
 		logger:      logger,
 		oauthConfig: oauthConfig,
-		projectID:   config.Firebase.ProjectID,
+		//projectID:   config.Firebase.ProjectID,
 	}, nil
 }
 

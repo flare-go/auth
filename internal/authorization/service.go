@@ -7,6 +7,7 @@ import (
 
 	"github.com/casbin/casbin/v2"
 	"go.uber.org/zap"
+
 	"goflare.io/auth/internal/role"
 	"goflare.io/auth/internal/user"
 )
