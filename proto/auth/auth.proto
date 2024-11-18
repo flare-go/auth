@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package auth.v1;
+option go_package = "github.com/koopa0/auth/pb;authpb";
+
+import "message.proto";
+
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+
+  rpc OAuthLogin(OAuthLoginRequest) returns (OAuthLoginResponse) {}
+  rpc OAuthCallback(OAuthCallbackRequest) returns (OAuthCallbackResponse) {}
+
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse) {}
+  
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {}
+}

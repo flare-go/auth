@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package auth.v1;
+option go_package = "github.com/koopa0/auth/pb;authpb";
+
+import "google/protobuf/timestamp.proto";
+
+message UserInfo {
+  uint64 id = 1;
+  string username = 2;
+  string email = 3;
+  string photo_url = 4;
+  string provider = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+enum ResourceType {
+  RESOURCE_UNSPECIFIED = 0;
+  RESOURCE_USER = 1;
+  RESOURCE_ROLE = 2;
+  RESOURCE_PERMISSION = 3;
+}
+
+enum ActionType {
+  ACTION_UNSPECIFIED = 0;
+  ACTION_CREATE = 1;
+  ACTION_READ = 2;
+  ACTION_UPDATE = 3;
+  ACTION_DELETE = 4;
+}

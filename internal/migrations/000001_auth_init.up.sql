@@ -4,14 +4,13 @@ CREATE TYPE action_type AS ENUM ('CREATE', 'READ', 'UPDATE', 'DELETE', 'LIST');
 
 CREATE TYPE resource_type AS ENUM('USER', 'ROLE', 'PERMISSION', 'PRODUCT', 'ORDER');
 
-
 CREATE TABLE users (
                        id SERIAL PRIMARY KEY,
                        username VARCHAR(100) NOT NULL UNIQUE CHECK (length(username) >= 2),
                        password_hash VARCHAR(255) NOT NULL,
                        email VARCHAR(100) NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]+$'),
                        phone VARCHAR(20) DEFAULT '' NOT NULL,
-                       firebase_uid VARCHAR(255) UNIQUE,
+                       firebase_uid VARCHAR(255),
                        provider provider_type NOT NULL DEFAULT 'email',
                        display_name VARCHAR(255),
                        photo_url VARCHAR(512),
@@ -44,7 +43,7 @@ CREATE TABLE user_roles (
                             PRIMARY KEY (user_id, role_id)
 );
 
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
                                   role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
                                   permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
                                   PRIMARY KEY (role_id, permission_id)

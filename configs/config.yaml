@@ -1,0 +1,27 @@
+mode: local
+
+environment: development
+
+database: postgres
+
+postgres:
+  url: postgres://
+  name: go-flare
+  username: "koopa"
+  password: "koopa"
+  host: postgres
+  port: 5432
+  ssl_mode: disable
+  ssl_root_cert: ""
+  cluster: ""
+  x-migrations-table: "auth.schema_migrations"
+
+nats:
+  url: nats://nats:4222
+
+migration:
+  path: ./internal/migrations
+
+paseto:
+  public_key: "X0EUKU7jb/++jOnqZRa+72O5iZ7inDXl9rkX37GHenM="
+  private_key: "EqQqI/ItJiaMqgY5nUmxo+xc0qqiGaXuvllnxo0ShspfQRQpTuNv/76M6eplFr7vY7mJnuKcNeX2uRffsYd6cw=="
